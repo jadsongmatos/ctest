@@ -36,6 +36,12 @@ node index.js
 
 # Analyze a specific project
 node index.js /path/to/npm/project
+
+# With function mapping (maps test files to source functions using Jest coverage)
+node index.js /path/to/npm/project --map-functions
+
+# With function mapping and dependency download (downloads source from repo_url)
+node index.js /path/to/npm/project --map-functions --download-dependencies
 ```
 
 ## How It Works
@@ -43,6 +49,8 @@ node index.js /path/to/npm/project
 1. **Generate SBOM**: Ctest uses `@cyclonedx/cyclonedx-npm` to generate a CycloneDX SBOM for the target npm project
 2. **Parse SBOM**: The SBOM is parsed to extract component information
 3. **Import to SQLite**: Components are imported into a SQLite database (`db/ctest.db`)
+4. **Map Functions** (optional): When `--map-functions` is used, Jest coverage is run to map test files to source functions
+5. **Download Dependencies** (optional): When `--download-dependencies` is used, source code is cloned from `repo_url` for each component before running coverage
 
 ## Generating SBOM Manually
 
@@ -104,35 +112,55 @@ db.close();
 const { analyze } = require('./index');
 
 const result = analyze('/path/to/npm/project', {
-  dbPath: 'db/ctest.db',      // SQLite database path
-  sbomPath: 'sbom.cdx.json',  // SBOM file path
-  generateSBOM: true          // Whether to generate SBOM
+  dbPath: 'db/ctest.db',              // SQLite database path
+  sbomPath: 'sbom.cdx.json',          // SBOM file path
+  generateSBOM: true,                 // Whether to generate SBOM
+  mapFunctions: false,                // Whether to map test functions
+  downloadDependencies: false         // Whether to download dependencies with repo_url
 });
 
 console.log(result);
 // {
 //   sbomPath: '/path/to/sbom.cdx.json',
 //   componentCount: 42,
-//   components: [...]
+//   components: [...],
+//   functionMapping: { testFiles, sourceFiles, functions, functionHits } // if mapFunctions is true
 // }
 ```
 
 ### Module Functions
 
-#### SBOM Module (`lib/sbom.js`)
+#### SBOM Module (`src/lib/sbom.js`)
 
 - `generateSBOM(projectPath, outputFile)` - Generate CycloneDX SBOM
 - `readSBOM(sbomPath)` - Read and parse SBOM file
 - `extractComponents(sbom)` - Extract components from SBOM
 - `createSBOMFromPackageLock(packageLock)` - Create minimal SBOM from package-lock.json
 
-#### Database Module (`lib/database.js`)
+#### Database Module (`src/lib/database.js`)
 
 - `openDatabase(dbPath)` - Open/create SQLite database
 - `importComponents(db, components)` - Import components to database
 - `getAllComponents(db)` - Get all components from database
 - `searchComponentsByName(db, name)` - Search components by name
+- `getComponentsWithRepoUrl(db)` - Get all components that have a repo_url
+- `findTestsByFunctionName(db, functionName)` - Find tests that executed a function by name
+- `findTestsByFunctionLocation(db, sourcePathPattern, startLine, endLine)` - Find tests by function location
+- `getFunctionsByTest(db, testPathPattern)` - Get all functions executed by a test file
 - `closeDatabase(db)` - Close database connection
+
+#### Functions Module (`src/lib/functions.js`)
+
+- `mapFunctions(prisma, projectPath, options)` - Map test functions to source functions using Jest coverage
+  - `options.downloadDependencies` - Whether to download dependencies with repo_url before mapping
+
+#### Repo Downloader Module (`src/lib/repo-downloader.js`)
+
+- `downloadRepos(components, baseDir)` - Download source code for components with repo_url
+- `installDependencies(repoPath)` - Install dependencies for a downloaded repository
+- `cleanupRepos(downloadRoot)` - Clean up downloaded repositories
+- `parseRepoUrl(repoUrl, version)` - Parse repo URL to extract git clone URL
+- `cloneRepo(gitUrl, ref, destDir)` - Clone a git repository
 
 ## Running Tests
 

@@ -7,7 +7,7 @@ const {
   getAllComponents,
   searchComponentsByName,
   closeDatabase
-} = require('../lib/database');
+} = require('../src/lib/database');
 
 describe('Database Module (Prisma)', () => {
   let prisma;

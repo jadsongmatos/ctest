@@ -2,13 +2,13 @@
   "name": "ctest",
   "version": "1.0.0",
   "description": "Ctest is a command-line tool that analyzes npm projects.",
-  "main": "index.js",
+  "main": "src/index.js",
   "bin": {
-    "ctest": "./index.js"
+    "ctest": "./src/index.js"
   },
   "scripts": {
     "test": "jest --coverage",
-    "ctest": "node index.js",
+    "ctest": "node src/index.js",
     "jest-fn-to-sqlite": "node scripts/jest-fn-to-sqlite.mjs"
   },
   "repository": {
@@ -44,8 +44,7 @@
     ],
     "coverageDirectory": "coverage",
     "collectCoverageFrom": [
-      "lib/**/*.js",
-      "index.js"
+      "src/**/*.js"
     ]
   }
 }

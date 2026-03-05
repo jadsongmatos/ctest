@@ -3,6 +3,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const crypto = require('crypto');
 const os = require('os');
+const { downloadRepos, installDependencies, cleanupRepos } = require('./repo-downloader');
 
 const isWin = process.platform === 'win32';
 const npx = isWin ? 'npx.cmd' : 'npx';
@@ -44,15 +45,48 @@ function hash(s) {
  * Maps test functions to source functions using Jest coverage and stores in database
  * @param {Object} prisma - Prisma client instance
  * @param {string} projectPath - Path to the npm project with Jest tests
+ * @param {Object} options - Options object
+ * @param {boolean} options.downloadDependencies - Whether to download dependencies with repo_url (default: false)
  * @returns {Object} - Summary of mapped functions
  */
-async function mapFunctions(prisma, projectPath) {
+async function mapFunctions(prisma, projectPath, options = {}) {
+  const {
+    downloadDependencies: shouldDownloadDeps = false
+  } = options;
+
   const resolvedProjectPath = path.resolve(projectPath);
 
   // Check if project path exists
   if (!fs.existsSync(resolvedProjectPath)) {
     console.warn(`Warning: Project path does not exist: ${resolvedProjectPath}. Skipping function mapping.`);
     return { testFiles: 0, functions: 0, functionHits: 0 };
+  }
+
+  // Download dependencies if requested
+  let downloadInfo = null;
+  if (shouldDownloadDeps) {
+    console.log('\nFetching components with repo_url from database...');
+    const componentsWithRepo = await prisma.component.findMany({
+      where: {
+        repo_url: {
+          not: null
+        }
+      }
+    });
+
+    if (componentsWithRepo.length > 0) {
+      console.log(`Found ${componentsWithRepo.length} components with repo_url`);
+      downloadInfo = downloadRepos(componentsWithRepo);
+      
+      // Install dependencies for downloaded repos
+      for (const [name, result] of Object.entries(downloadInfo.results)) {
+        if (result.success && result.path) {
+          installDependencies(result.path);
+        }
+      }
+    } else {
+      console.log('No components with repo_url found in database');
+    }
   }
 
   // 1) List tests
@@ -62,6 +96,9 @@ async function mapFunctions(prisma, projectPath) {
     testsOut = sh(npx, ['jest', '--listTests'], { cwd: resolvedProjectPath });
   } catch (error) {
     console.warn('Warning: Jest not found or no tests detected. Skipping function mapping.');
+    if (downloadInfo?.downloadRoot) {
+      cleanupRepos(downloadInfo.downloadRoot);
+    }
     return { testFiles: 0, functions: 0, functionHits: 0 };
   }
 
@@ -150,6 +187,12 @@ async function mapFunctions(prisma, projectPath) {
 
   // Cleanup temp
   fs.rmSync(tmpRoot, { recursive: true, force: true });
+
+  // Cleanup downloaded repos
+  if (downloadInfo?.downloadRoot) {
+    console.log('\nCleaning up downloaded repositories...');
+    cleanupRepos(downloadInfo.downloadRoot);
+  }
 
   // Show summary
   const testCount = await prisma.testFile.count();

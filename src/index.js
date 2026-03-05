@@ -14,13 +14,15 @@ const { mapFunctions } = require('./lib/functions');
  * @param {string} options.sbomPath - Path to SBOM file (default: sbom.cdx.json)
  * @param {boolean} options.generateSBOM - Whether to generate SBOM (default: true)
  * @param {boolean} options.mapFunctions - Whether to map test functions (default: false)
+ * @param {boolean} options.downloadDependencies - Whether to download dependencies with repo_url (default: false)
  */
 async function analyze(projectPath, options = {}) {
   const {
-    dbPath = path.join(__dirname, 'db', 'ctest.db'),
+    dbPath = path.join(process.cwd(), 'db', 'ctest.db'),
     sbomPath = 'sbom.cdx.json',
     generateSBOM: shouldGenerateSBOM = true,
-    mapFunctions: shouldMapFunctions = false
+    mapFunctions: shouldMapFunctions = false,
+    downloadDependencies: shouldDownloadDeps = false
   } = options;
 
   const resolvedProjectPath = path.resolve(projectPath);
@@ -34,7 +36,8 @@ async function analyze(projectPath, options = {}) {
   let sbomFile;
   if (shouldGenerateSBOM) {
     console.log('Generating SBOM...');
-    sbomFile = generateSBOM(resolvedProjectPath, sbomPath);
+    // Fetch repo URLs from npm registry only when download-dependencies is enabled
+    sbomFile = await generateSBOM(resolvedProjectPath, sbomPath, shouldDownloadDeps);
   } else {
     sbomFile = path.resolve(resolvedProjectPath, sbomPath);
     if (!fs.existsSync(sbomFile)) {
@@ -61,7 +64,9 @@ async function analyze(projectPath, options = {}) {
   let functionMapping;
   if (shouldMapFunctions) {
     console.log('\nMapping test functions...');
-    functionMapping = await mapFunctions(prisma, resolvedProjectPath);
+    functionMapping = await mapFunctions(prisma, resolvedProjectPath, {
+      downloadDependencies: shouldDownloadDeps
+    });
     console.log(`Mapped ${functionMapping.functions} functions across ${functionMapping.testFiles} test files`);
   }
 
@@ -87,11 +92,16 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   const projectPath = args[0] || process.cwd();
   const mapFunctionsFlag = args.includes('--map-functions');
+  const downloadDependenciesFlag = args.includes('--download-dependencies');
 
   (async () => {
     try {
-      const result = await analyze(projectPath, { mapFunctions: mapFunctionsFlag });
+      const result = await analyze(projectPath, {
+        mapFunctions: mapFunctionsFlag,
+        downloadDependencies: downloadDependenciesFlag
+      });
       console.log(`\nAnalysis complete. Database: db/ctest.db`);
+      process.exit(0);
     } catch (error) {
       console.error('Error:', error.message);
       process.exit(1);

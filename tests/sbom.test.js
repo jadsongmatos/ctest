@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { generateSBOM, readSBOM, extractComponents } = require('../lib/sbom');
+const { generateSBOM, readSBOM, extractComponents } = require('../src/lib/sbom');
 
 describe('SBOM Module', () => {
   const testProjectPath = path.join(__dirname, 'fixtures', 'test-project');
@@ -108,7 +108,7 @@ describe('SBOM Module', () => {
   });
 
   describe('createSBOMFromPackageLock', () => {
-    it('should create minimal SBOM from package-lock.json', () => {
+    it('should create minimal SBOM from package-lock.json', async () => {
       const packageLock = {
         packages: {
           '': { name: 'root', version: '1.0.0' },
@@ -116,10 +116,10 @@ describe('SBOM Module', () => {
           'node_modules/lodash': { name: 'lodash', version: '4.17.21' }
         }
       };
-      
-      const { createSBOMFromPackageLock } = require('../lib/sbom');
-      const sbom = createSBOMFromPackageLock(packageLock);
-      
+
+      const { createSBOMFromPackageLock } = require('../src/lib/sbom');
+      const sbom = await createSBOMFromPackageLock(packageLock, false);
+
       expect(sbom.bomFormat).toBe('CycloneDX');
       expect(sbom.specVersion).toBe('1.4');
       expect(sbom.components).toHaveLength(2);

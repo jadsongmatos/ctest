@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 const { execSync } = require('child_process');
-const { analyze } = require('../index');
+const { analyze } = require('../src/index');
 
 describe('Main Module', () => {
   const testProjectPath = path.join(__dirname, 'fixtures', 'test-project');

@@ -15,18 +15,20 @@ async function openDatabase(dbPath = 'db/ctest.db') {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  // Create Prisma client with custom database URL
+  // Create Prisma client with custom database URL and increased timeout
   const prisma = new PrismaClient({
     datasources: {
       db: {
         url: `file:${resolvedPath}`
       }
-    }
+    },
+    log: ['error', 'warn'],
+    errorFormat: 'pretty'
   });
-  
+
   // Initialize database schema if tables don't exist
   await initializeSchema(prisma);
-  
+
   return prisma;
 }
 
@@ -97,32 +99,44 @@ async function initializeSchema(prisma) {
 }
 
 /**
- * Inserts or updates components in the database
+ * Inserts or updates components in the database in batches
  * @param {Object} prisma - Prisma client instance
  * @param {Array} components - Array of component objects
+ * @param {number} batchSize - Number of components to process per batch (default: 50)
  * @returns {number} - Number of components inserted/updated
  */
-async function importComponents(prisma, components) {
-  const promises = components.map(component =>
-    prisma.component.upsert({
-      where: {
-        name_version: {
+async function importComponents(prisma, components, batchSize = 50) {
+  console.log(`Importing ${components.length} components in batches of ${batchSize}...`);
+  
+  for (let i = 0; i < components.length; i += batchSize) {
+    const batch = components.slice(i, i + batchSize);
+    const batchNum = Math.floor(i / batchSize) + 1;
+    const totalBatches = Math.ceil(components.length / batchSize);
+    
+    console.log(`  Batch ${batchNum}/${totalBatches} (${batch.length} components)...`);
+    
+    const promises = batch.map(component =>
+      prisma.component.upsert({
+        where: {
+          name_version: {
+            name: component.name,
+            version: component.version
+          }
+        },
+        update: {
+          repo_url: component.repo_url
+        },
+        create: {
           name: component.name,
-          version: component.version
+          version: component.version,
+          repo_url: component.repo_url
         }
-      },
-      update: {
-        repo_url: component.repo_url
-      },
-      create: {
-        name: component.name,
-        version: component.version,
-        repo_url: component.repo_url
-      }
-    })
-  );
+      })
+    );
 
-  await Promise.all(promises);
+    await Promise.all(promises);
+  }
+  
   return components.length;
 }
 
@@ -270,6 +284,22 @@ async function getFunctionsByTest(prisma, testPathPattern) {
 }
 
 /**
+ * Gets all components that have a repo_url
+ * @param {Object} prisma - Prisma client instance
+ * @returns {Array} - Array of components with repo_url
+ */
+async function getComponentsWithRepoUrl(prisma) {
+  return prisma.component.findMany({
+    where: {
+      repo_url: {
+        not: null
+      }
+    },
+    orderBy: { name: 'asc' }
+  });
+}
+
+/**
  * Closes the Prisma client connection
  * @param {Object} prisma - Prisma client instance
  */
@@ -285,5 +315,6 @@ module.exports = {
   findTestsByFunctionName,
   findTestsByFunctionLocation,
   getFunctionsByTest,
+  getComponentsWithRepoUrl,
   closeDatabase
 };

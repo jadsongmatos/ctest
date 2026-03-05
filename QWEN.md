@@ -8,6 +8,7 @@ Ctest é uma ferramenta de linha de comando que analisa projetos npm.
 * Importa o SBOM para um banco SQLite usando o ORM Prisma
 * Mapeia arquivos de teste para funções do código-fonte usando cobertura do Jest
 * Armazena informações de componentes: nome, versão, repo_url
+* Baixa código fonte de dependências usando repo_url para mapeamento de funções
 
 ## Dependências
 
@@ -33,6 +34,14 @@ node index.js /caminho/para/projeto/npm
 node index.js /caminho/para/projeto/npm --map-functions
 ```
 
+### Com download de dependências e mapeamento de funções
+
+```bash
+node index.js /caminho/para/projeto/npm --map-functions --download-dependencies
+```
+
+A flag `--download-dependencies` baixa o código fonte das dependências que possuem `repo_url` no SBOM, permitindo mapear funções de bibliotecas externas.
+
 ## Esquema do banco de dados
 
 O banco SQLite contém as seguintes tabelas:
@@ -45,10 +54,11 @@ O banco SQLite contém as seguintes tabelas:
 
 ## Estrutura do projeto
 
-* `lib/database.js` - operações de banco de dados baseadas em Prisma
-* `lib/sbom.js` - geração e parsing do SBOM
-* `lib/functions.js` - mapeamento de funções via cobertura do Jest
-* `index.js` - ponto de entrada principal do CLI
+* `src/index.js` - ponto de entrada principal do CLI
+* `src/lib/database.js` - operações de banco de dados baseadas em Prisma
+* `src/lib/sbom.js` - geração e parsing do SBOM
+* `src/lib/functions.js` - mapeamento de funções via cobertura do Jest
+* `src/lib/repo-downloader.js` - download de repositórios git usando repo_url
 * `prisma/schema.prisma` - definição do schema do Prisma
 * `tests/` - arquivos de teste
 * `ref/` - projetos de teste de referência

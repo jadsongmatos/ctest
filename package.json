@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "jest --coverage",
-    "ctest": "node index.js"
+    "ctest": "node index.js",
+    "jest-fn-to-sqlite": "node scripts/jest-fn-to-sqlite.mjs"
   },
   "repository": {
     "type": "git",
@@ -30,7 +31,8 @@
   "homepage": "https://github.com/jadsongmatos/ctest#readme",
   "dependencies": {
     "@cyclonedx/cyclonedx-npm": "^4.2.0",
-    "better-sqlite3": "^12.6.2"
+    "@prisma/client": "^6.19.2",
+    "prisma": "^6.19.2"
   },
   "devDependencies": {
     "jest": "^30.2.0"

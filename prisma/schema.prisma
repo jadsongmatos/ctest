@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./db/ctest.db"
+}
+
+model Component {
+  id         Int      @id @default(autoincrement())
+  name       String
+  version    String
+  repo_url   String?
+  created_at DateTime @default(now())
+
+  @@unique([name, version])
+  @@map("components")
+}
+
+model TestFile {
+  id            Int            @id @default(autoincrement())
+  path          String         @unique
+  functionHits  FunctionHit[]
+
+  @@map("test_files")
+}
+
+model SourceFile {
+  id         Int        @id @default(autoincrement())
+  path       String     @unique
+  functions  Function[]
+
+  @@map("source_files")
+}
+
+model Function {
+  id           Int           @id @default(autoincrement())
+  sourceFileId Int
+  name         String
+  startLine    Int?
+  startCol     Int?
+  endLine      Int?
+  endCol       Int?
+  sourceFile   SourceFile    @relation(fields: [sourceFileId], references: [id])
+  functionHits FunctionHit[]
+
+  @@unique([sourceFileId, name, startLine, startCol, endLine, endCol])
+  @@index([name])
+  @@map("functions")
+}
+
+model FunctionHit {
+  testFileId Int
+  functionId Int
+  hits       Int
+  testFile   TestFile   @relation(fields: [testFileId], references: [id])
+  function   Function   @relation(fields: [functionId], references: [id])
+
+  @@id([testFileId, functionId])
+  @@map("function_hits")
+}

@@ -1,0 +1,49 @@
+{
+  "name": "ctest",
+  "version": "1.0.0",
+  "description": "Ctest is a command-line tool that analyzes npm projects.",
+  "main": "index.js",
+  "bin": {
+    "ctest": "./index.js"
+  },
+  "scripts": {
+    "test": "jest --coverage",
+    "ctest": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jadsongmatos/ctest.git"
+  },
+  "keywords": [
+    "sbom",
+    "cyclonedx",
+    "npm",
+    "security",
+    "dependency-analysis"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jadsongmatos/ctest/issues"
+  },
+  "homepage": "https://github.com/jadsongmatos/ctest#readme",
+  "dependencies": {
+    "@cyclonedx/cyclonedx-npm": "^4.2.0",
+    "better-sqlite3": "^12.6.2"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "lib/**/*.js",
+      "index.js"
+    ]
+  }
+}

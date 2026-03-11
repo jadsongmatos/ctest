@@ -15,6 +15,7 @@ const { mapFunctions } = require('./lib/functions');
  * @param {boolean} options.generateSBOM - Whether to generate SBOM (default: true)
  * @param {boolean} options.mapFunctions - Whether to map test functions (default: false)
  * @param {boolean} options.downloadDependencies - Whether to download dependencies with repo_url (default: false)
+ * @param {boolean} options.scanDependencies - Whether to scan dependencies for functions (default: false)
  */
 async function analyze(projectPath, options = {}) {
   const {
@@ -22,7 +23,8 @@ async function analyze(projectPath, options = {}) {
     sbomPath = 'sbom.cdx.json',
     generateSBOM: shouldGenerateSBOM = true,
     mapFunctions: shouldMapFunctions = false,
-    downloadDependencies: shouldDownloadDeps = false
+    downloadDependencies: shouldDownloadDeps = false,
+    scanDependencies: shouldScanDeps = false
   } = options;
 
   const resolvedProjectPath = path.resolve(projectPath);
@@ -65,7 +67,8 @@ async function analyze(projectPath, options = {}) {
   if (shouldMapFunctions) {
     console.log('\nMapping test functions...');
     functionMapping = await mapFunctions(prisma, resolvedProjectPath, {
-      downloadDependencies: shouldDownloadDeps
+      downloadDependencies: shouldDownloadDeps,
+      scanDependencies: shouldScanDeps
     });
     console.log(`Mapped ${functionMapping.functions} functions across ${functionMapping.testFiles} test files`);
   }
@@ -93,12 +96,14 @@ if (require.main === module) {
   const projectPath = args[0] || process.cwd();
   const mapFunctionsFlag = args.includes('--map-functions');
   const downloadDependenciesFlag = args.includes('--download-dependencies');
+  const scanDependenciesFlag = args.includes('--scan-dependencies');
 
   (async () => {
     try {
       const result = await analyze(projectPath, {
         mapFunctions: mapFunctionsFlag,
-        downloadDependencies: downloadDependenciesFlag
+        downloadDependencies: downloadDependenciesFlag,
+        scanDependencies: scanDependenciesFlag
       });
       console.log(`\nAnalysis complete. Database: db/ctest.db`);
       process.exit(0);

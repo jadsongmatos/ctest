@@ -4,6 +4,7 @@ const { execSync } = require('child_process');
 const crypto = require('crypto');
 const os = require('os');
 const { downloadRepos, installDependencies, cleanupRepos } = require('./repo-downloader');
+const { scanDownloadedDependencies, scanAllDependencies } = require('./dependency-scanner');
 
 const isWin = process.platform === 'win32';
 const npx = isWin ? 'npx.cmd' : 'npx';
@@ -47,11 +48,13 @@ function hash(s) {
  * @param {string} projectPath - Path to the npm project with Jest tests
  * @param {Object} options - Options object
  * @param {boolean} options.downloadDependencies - Whether to download dependencies with repo_url (default: false)
+ * @param {boolean} options.scanDependencies - Whether to scan dependencies for functions (default: false)
  * @returns {Object} - Summary of mapped functions
  */
 async function mapFunctions(prisma, projectPath, options = {}) {
   const {
-    downloadDependencies: shouldDownloadDeps = false
+    downloadDependencies: shouldDownloadDeps = false,
+    scanDependencies: shouldScanDeps = false
   } = options;
 
   const resolvedProjectPath = path.resolve(projectPath);
@@ -77,7 +80,7 @@ async function mapFunctions(prisma, projectPath, options = {}) {
     if (componentsWithRepo.length > 0) {
       console.log(`Found ${componentsWithRepo.length} components with repo_url`);
       downloadInfo = downloadRepos(componentsWithRepo);
-      
+
       // Install dependencies for downloaded repos
       for (const [name, result] of Object.entries(downloadInfo.results)) {
         if (result.success && result.path) {
@@ -87,6 +90,21 @@ async function mapFunctions(prisma, projectPath, options = {}) {
     } else {
       console.log('No components with repo_url found in database');
     }
+  }
+
+  // Scan dependencies for functions if requested
+  if (shouldScanDeps) {
+    console.log('\nScanning dependencies for functions...');
+    
+    // First scan downloaded dependencies (if available)
+    if (downloadInfo?.results) {
+      const downloadedResult = await scanDownloadedDependencies(prisma, downloadInfo);
+      console.log(`Found ${downloadedResult.functions} functions in ${downloadedResult.dependencies} downloaded dependencies`);
+    }
+    
+    // Then scan local node_modules
+    const localResult = await scanAllDependencies(prisma, resolvedProjectPath);
+    console.log(`Found ${localResult.functions} functions in ${localResult.dependencies} local dependencies`);
   }
 
   // 1) List tests

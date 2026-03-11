@@ -40,7 +40,21 @@ node index.js /caminho/para/projeto/npm --map-functions
 node index.js /caminho/para/projeto/npm --map-functions --download-dependencies
 ```
 
+### Com análise de dependências (extrai funções do código fonte)
+
+```bash
+node index.js /caminho/para/projeto/npm --map-functions --scan-dependencies
+```
+
+### Com download e análise de dependências
+
+```bash
+node index.js /caminho/para/projeto/npm --map-functions --download-dependencies --scan-dependencies
+```
+
 A flag `--download-dependencies` baixa o código fonte das dependências que possuem `repo_url` no SBOM, permitindo mapear funções de bibliotecas externas.
+
+A flag `--scan-dependencies` analisa o código fonte das dependências (baixadas ou em node_modules) e extrai todas as funções para o banco de dados.
 
 ## Esquema do banco de dados
 

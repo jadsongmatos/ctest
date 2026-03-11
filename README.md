@@ -42,6 +42,12 @@ node index.js /path/to/npm/project --map-functions
 
 # With function mapping and dependency download (downloads source from repo_url)
 node index.js /path/to/npm/project --map-functions --download-dependencies
+
+# With function mapping and dependency scanning (extracts functions from node_modules)
+node index.js /path/to/npm/project --map-functions --scan-dependencies
+
+# With function mapping, dependency download and scanning
+node index.js /path/to/npm/project --map-functions --download-dependencies --scan-dependencies
 ```
 
 ## How It Works
@@ -51,6 +57,7 @@ node index.js /path/to/npm/project --map-functions --download-dependencies
 3. **Import to SQLite**: Components are imported into a SQLite database (`db/ctest.db`)
 4. **Map Functions** (optional): When `--map-functions` is used, Jest coverage is run to map test files to source functions
 5. **Download Dependencies** (optional): When `--download-dependencies` is used, source code is cloned from `repo_url` for each component before running coverage
+6. **Scan Dependencies** (optional): When `--scan-dependencies` is used, the source code of dependencies in `node_modules` is parsed to extract all function definitions
 
 ## Generating SBOM Manually
 
@@ -116,7 +123,8 @@ const result = analyze('/path/to/npm/project', {
   sbomPath: 'sbom.cdx.json',          // SBOM file path
   generateSBOM: true,                 // Whether to generate SBOM
   mapFunctions: false,                // Whether to map test functions
-  downloadDependencies: false         // Whether to download dependencies with repo_url
+  downloadDependencies: false,        // Whether to download dependencies with repo_url
+  scanDependencies: false             // Whether to scan dependencies for functions
 });
 
 console.log(result);
@@ -153,6 +161,19 @@ console.log(result);
 
 - `mapFunctions(prisma, projectPath, options)` - Map test functions to source functions using Jest coverage
   - `options.downloadDependencies` - Whether to download dependencies with repo_url before mapping
+  - `options.scanDependencies` - Whether to scan dependencies for functions
+
+#### Source Parser Module (`src/lib/source-parser.js`)
+
+- `parseFile(filePath)` - Parse a JavaScript file and extract function definitions
+- `scanDirectory(dir, options)` - Scan a directory recursively for JavaScript files
+- `extractFunctionsFromDirectory(dir, options)` - Extract functions from all JavaScript files in a directory
+
+#### Dependency Scanner Module (`src/lib/dependency-scanner.js`)
+
+- `scanDependency(prisma, depName, depPath)` - Scan a dependency directory and extract all functions
+- `scanAllDependencies(prisma, projectPath)` - Scan all dependencies in node_modules and extract functions
+- `scanDownloadedDependencies(prisma, downloadInfo)` - Scan downloaded dependencies (from repo_url) and extract functions
 
 #### Repo Downloader Module (`src/lib/repo-downloader.js`)
 

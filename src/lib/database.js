@@ -7,15 +7,27 @@ const fs = require('fs');
  * @param {string} dbPath - Path to the database file
  * @returns {Object} - Prisma client instance
  */
-async function openDatabase(dbPath = 'db/ctest.db') {
+async function openDatabase(dbPath) {
+  // Use provided path or default or environment variable
+  let resolvedPath;
+  
+  if (dbPath) {
+    resolvedPath = path.resolve(process.cwd(), dbPath);
+  } else if (process.env.DATABASE_URL) {
+    // Extract path from DATABASE_URL (format: file:/path/to/db.db)
+    const urlPath = process.env.DATABASE_URL.replace('file:', '');
+    resolvedPath = path.resolve(urlPath);
+  } else {
+    resolvedPath = path.resolve(process.cwd(), 'db', 'ctest.db');
+  }
+  
   // Ensure db directory exists
-  const resolvedPath = path.resolve(process.cwd(), dbPath);
   const dir = path.dirname(resolvedPath);
   if (dir && !fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  // Create Prisma client with custom database URL and increased timeout
+  // Create Prisma client with custom database URL
   const prisma = new PrismaClient({
     datasources: {
       db: {
@@ -38,8 +50,12 @@ async function openDatabase(dbPath = 'db/ctest.db') {
  */
 async function initializeSchema(prisma) {
   try {
-    // Check if components table exists
+    // Check if all tables exist
     await prisma.$queryRaw`SELECT 1 FROM components LIMIT 1`;
+    await prisma.$queryRaw`SELECT 1 FROM test_files LIMIT 1`;
+    await prisma.$queryRaw`SELECT 1 FROM source_files LIMIT 1`;
+    await prisma.$queryRaw`SELECT 1 FROM functions LIMIT 1`;
+    await prisma.$queryRaw`SELECT 1 FROM function_hits LIMIT 1`;
   } catch (e) {
     // Tables don't exist, create them
     await prisma.$executeRawUnsafe(`

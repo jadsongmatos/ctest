@@ -11,11 +11,19 @@ const {
 
 describe('Database Module (Prisma)', () => {
   let prisma;
+  let originalDbPath;
+
+  beforeAll(async () => {
+    // Save original DATABASE_URL if set
+    originalDbPath = process.env.DATABASE_URL;
+  });
 
   beforeEach(async () => {
+    // Use a test-specific database to avoid conflicts
+    const testDbPath = path.join(__dirname, 'test-ctest.db');
+    process.env.DATABASE_URL = `file:${testDbPath}`;
     prisma = await openDatabase();
-    // Clear any existing data
-    await prisma.component.deleteMany();
+    // Clear only test-related data, not components (which may be populated by other tests)
     await prisma.functionHit.deleteMany();
     await prisma.function.deleteMany();
     await prisma.sourceFile.deleteMany();
@@ -24,6 +32,19 @@ describe('Database Module (Prisma)', () => {
 
   afterEach(async () => {
     await closeDatabase(prisma);
+    // Restore original DATABASE_URL
+    if (originalDbPath) {
+      process.env.DATABASE_URL = originalDbPath;
+    } else {
+      delete process.env.DATABASE_URL;
+    }
+    // Clean up test database
+    const testDbPath = path.join(__dirname, 'test-ctest.db');
+    try {
+      require('fs').unlinkSync(testDbPath);
+    } catch (e) {
+      // Ignore if file doesn't exist
+    }
   });
 
   describe('openDatabase', () => {

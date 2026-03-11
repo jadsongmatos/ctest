@@ -1,4 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
+const { PrismaLibSql } = require('@prisma/adapter-libsql');
+const { createClient } = require('@libsql/client');
 const path = require('path');
 const fs = require('fs');
 
@@ -10,7 +12,7 @@ const fs = require('fs');
 async function openDatabase(dbPath) {
   // Use provided path or default or environment variable
   let resolvedPath;
-  
+
   if (dbPath) {
     resolvedPath = path.resolve(process.cwd(), dbPath);
   } else if (process.env.DATABASE_URL) {
@@ -20,45 +22,49 @@ async function openDatabase(dbPath) {
   } else {
     resolvedPath = path.resolve(process.cwd(), 'db', 'ctest.db');
   }
-  
+
   // Ensure db directory exists
   const dir = path.dirname(resolvedPath);
   if (dir && !fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  // Create Prisma client with custom database URL
+  // Create libsql client
+  const libsql = createClient({
+    url: `file:${resolvedPath}`
+  });
+
+  // Initialize database schema using libsql directly
+  await initializeSchema(libsql);
+
+  // Create Prisma adapter
+  const adapter = new PrismaLibSql(libsql);
+
+  // Create Prisma client with adapter
   const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: `file:${resolvedPath}`
-      }
-    },
+    adapter,
     log: ['error', 'warn'],
     errorFormat: 'pretty'
   });
-
-  // Initialize database schema if tables don't exist
-  await initializeSchema(prisma);
 
   return prisma;
 }
 
 /**
  * Initializes the database schema if tables don't exist
- * @param {Object} prisma - Prisma client instance
+ * @param {Object} libsql - libsql client instance
  */
-async function initializeSchema(prisma) {
+async function initializeSchema(libsql) {
   try {
-    // Check if all tables exist
-    await prisma.$queryRaw`SELECT 1 FROM components LIMIT 1`;
-    await prisma.$queryRaw`SELECT 1 FROM test_files LIMIT 1`;
-    await prisma.$queryRaw`SELECT 1 FROM source_files LIMIT 1`;
-    await prisma.$queryRaw`SELECT 1 FROM functions LIMIT 1`;
-    await prisma.$queryRaw`SELECT 1 FROM function_hits LIMIT 1`;
-  } catch (e) {
-    // Tables don't exist, create them
-    await prisma.$executeRawUnsafe(`
+    // Check if components table exists
+    const result = await libsql.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='components'");
+    if (result.rows.length > 0) {
+      // Tables already exist
+      return;
+    }
+
+    // Create tables
+    await libsql.execute(`
       CREATE TABLE IF NOT EXISTS components (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -69,21 +75,21 @@ async function initializeSchema(prisma) {
       )
     `);
 
-    await prisma.$executeRawUnsafe(`
+    await libsql.execute(`
       CREATE TABLE IF NOT EXISTS test_files (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         path TEXT NOT NULL UNIQUE
       )
     `);
 
-    await prisma.$executeRawUnsafe(`
+    await libsql.execute(`
       CREATE TABLE IF NOT EXISTS source_files (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         path TEXT NOT NULL UNIQUE
       )
     `);
 
-    await prisma.$executeRawUnsafe(`
+    await libsql.execute(`
       CREATE TABLE IF NOT EXISTS functions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sourceFileId INTEGER NOT NULL,
@@ -96,7 +102,7 @@ async function initializeSchema(prisma) {
       )
     `);
 
-    await prisma.$executeRawUnsafe(`
+    await libsql.execute(`
       CREATE TABLE IF NOT EXISTS function_hits (
         testFileId INTEGER NOT NULL,
         functionId INTEGER NOT NULL,
@@ -108,9 +114,12 @@ async function initializeSchema(prisma) {
     `);
 
     // Create indexes
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_functions_name ON functions(name)`);
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_source_files_path ON source_files(path)`);
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_test_files_path ON test_files(path)`);
+    await libsql.execute(`CREATE INDEX IF NOT EXISTS idx_functions_name ON functions(name)`);
+    await libsql.execute(`CREATE INDEX IF NOT EXISTS idx_source_files_path ON source_files(path)`);
+    await libsql.execute(`CREATE INDEX IF NOT EXISTS idx_test_files_path ON test_files(path)`);
+  } catch (e) {
+    console.error('Error initializing schema:', e);
+    throw e;
   }
 }
 

@@ -1,15 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 const { scanDirectory, parseFile } = require('./source-parser');
+const { upsertSourceFile, upsertFunction } = require('./database-libsql');
 
 /**
  * Scans a dependency directory and extracts all functions from JavaScript files
- * @param {Object} prisma - Prisma client instance
+ * @param {Object} db - libsql client instance
  * @param {string} depName - Dependency name
  * @param {string} depPath - Path to the dependency
  * @returns {Object} - Summary of extracted functions
  */
-async function scanDependency(prisma, depName, depPath) {
+async function scanDependency(db, depName, depPath) {
   if (!fs.existsSync(depPath)) {
     console.warn(`Warning: Dependency path does not exist: ${depPath}`);
     return { sourceFiles: 0, functions: 0 };
@@ -31,37 +32,13 @@ async function scanDependency(prisma, depName, depPath) {
       
       if (functions.length > 0) {
         // Register source file in database
-        const sourceFile = await prisma.sourceFile.upsert({
-          where: { path: file },
-          update: {},
-          create: { path: file }
-        });
+        const sourceFileId = await upsertSourceFile(db, file);
 
         sourceFileCount++;
 
         // Register each function
         for (const fn of functions) {
-          await prisma.function.upsert({
-            where: {
-              sourceFileId_name_startLine_startCol_endLine_endCol: {
-                sourceFileId: sourceFile.id,
-                name: fn.name,
-                startLine: fn.startLine,
-                startCol: fn.startCol,
-                endLine: fn.endLine,
-                endCol: fn.endCol
-              }
-            },
-            update: {},
-            create: {
-              sourceFileId: sourceFile.id,
-              name: fn.name,
-              startLine: fn.startLine,
-              startCol: fn.startCol,
-              endLine: fn.endLine,
-              endCol: fn.endCol
-            }
-          });
+          await upsertFunction(db, sourceFileId, fn);
           functionCount++;
         }
       }
@@ -78,11 +55,11 @@ async function scanDependency(prisma, depName, depPath) {
 
 /**
  * Scans all dependencies in node_modules and extracts functions
- * @param {Object} prisma - Prisma client instance
+ * @param {Object} db - libsql client instance
  * @param {string} projectPath - Path to the npm project
  * @returns {Object} - Summary of extracted functions
  */
-async function scanAllDependencies(prisma, projectPath) {
+async function scanAllDependencies(db, projectPath) {
   const nodeModulesPath = path.join(projectPath, 'node_modules');
   
   if (!fs.existsSync(nodeModulesPath)) {
@@ -109,7 +86,7 @@ async function scanAllDependencies(prisma, projectPath) {
         
         if (fs.existsSync(path.join(scopedDepPath, 'package.json'))) {
           depCount++;
-          const result = await scanDependency(prisma, depName, scopedDepPath);
+          const result = await scanDependency(db, depName, scopedDepPath);
           totalSourceFiles += result.sourceFiles;
           totalFunctions += result.functions;
         }
@@ -119,7 +96,7 @@ async function scanAllDependencies(prisma, projectPath) {
       
       if (fs.existsSync(path.join(depPath, 'package.json'))) {
         depCount++;
-        const result = await scanDependency(prisma, dep, depPath);
+        const result = await scanDependency(db, dep, depPath);
         totalSourceFiles += result.sourceFiles;
         totalFunctions += result.functions;
       }
@@ -135,11 +112,11 @@ async function scanAllDependencies(prisma, projectPath) {
 
 /**
  * Scans downloaded dependencies (from repo_url) and extracts functions
- * @param {Object} prisma - Prisma client instance
+ * @param {Object} db - libsql client instance
  * @param {Object} downloadInfo - Download info from repo-downloader
  * @returns {Object} - Summary of extracted functions
  */
-async function scanDownloadedDependencies(prisma, downloadInfo) {
+async function scanDownloadedDependencies(db, downloadInfo) {
   if (!downloadInfo?.results) {
     console.log('No downloaded dependencies to scan.');
     return { dependencies: 0, sourceFiles: 0, functions: 0 };
@@ -154,7 +131,7 @@ async function scanDownloadedDependencies(prisma, downloadInfo) {
   for (const [depName, result] of Object.entries(downloadInfo.results)) {
     if (result.success && result.path) {
       depCount++;
-      const scanResult = await scanDependency(prisma, depName, result.path);
+      const scanResult = await scanDependency(db, depName, result.path);
       totalSourceFiles += scanResult.sourceFiles;
       totalFunctions += scanResult.functions;
     }

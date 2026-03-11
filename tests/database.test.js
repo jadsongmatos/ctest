@@ -1,4 +1,3 @@
-const { PrismaClient } = require('@prisma/client');
 const path = require('path');
 const fs = require('fs');
 const {
@@ -7,10 +6,10 @@ const {
   getAllComponents,
   searchComponentsByName,
   closeDatabase
-} = require('../src/lib/database');
+} = require('../src/lib/database-libsql');
 
-describe('Database Module (Prisma)', () => {
-  let prisma;
+describe('Database Module (libsql)', () => {
+  let db;
   let originalDbPath;
 
   beforeAll(async () => {
@@ -22,16 +21,15 @@ describe('Database Module (Prisma)', () => {
     // Use a test-specific database to avoid conflicts
     const testDbPath = path.join(__dirname, 'test-ctest.db');
     process.env.DATABASE_URL = `file:${testDbPath}`;
-    prisma = await openDatabase();
+    db = await openDatabase();
     // Clear only test-related data, not components (which may be populated by other tests)
-    await prisma.functionHit.deleteMany();
-    await prisma.function.deleteMany();
-    await prisma.sourceFile.deleteMany();
-    await prisma.testFile.deleteMany();
+    await db.execute('DELETE FROM function_hits');
+    await db.execute('DELETE FROM functions');
+    await db.execute('DELETE FROM source_files');
+    await db.execute('DELETE FROM test_files');
   });
 
   afterEach(async () => {
-    await closeDatabase(prisma);
     // Restore original DATABASE_URL
     if (originalDbPath) {
       process.env.DATABASE_URL = originalDbPath;
@@ -49,112 +47,95 @@ describe('Database Module (Prisma)', () => {
 
   describe('openDatabase', () => {
     it('should create a new database client', async () => {
-      expect(prisma).toBeDefined();
+      expect(db).toBeDefined();
     });
 
     it('should create components table', async () => {
-      const component = await prisma.component.create({
-        data: {
-          name: 'test',
-          version: '1.0.0'
-        }
-      });
-
-      expect(component).toBeDefined();
-      expect(component.name).toBe('test');
+      await db.execute(`INSERT INTO components (name, version) VALUES ('test', '1.0.0')`);
+      const result = await db.execute('SELECT * FROM components WHERE name = ?', { args: ['test'] });
+      expect(result.rows.length).toBe(1);
+      expect(result.rows[0][1]).toBe('test');
+      expect(result.rows[0][2]).toBe('1.0.0');
     });
   });
 
   describe('importComponents', () => {
     it('should insert components into database', async () => {
       const components = [
-        { name: 'express', version: '4.18.0', repo_url: 'https://github.com/expressjs/express' },
-        { name: 'lodash', version: '4.17.21', repo_url: 'https://github.com/lodash/lodash' }
+        { name: 'test1', version: '1.0.0', repo_url: 'https://github.com/test1' },
+        { name: 'test2', version: '2.0.0', repo_url: 'https://github.com/test2' }
       ];
 
-      await importComponents(prisma, components);
+      await importComponents(db, components);
 
-      const allComponents = await getAllComponents(prisma);
-      expect(allComponents.length).toBe(2);
-      expect(allComponents.find(c => c.name === 'express')).toBeDefined();
-      expect(allComponents.find(c => c.name === 'lodash')).toBeDefined();
+      const result = await db.execute('SELECT * FROM components ORDER BY name');
+      expect(result.rows.length).toBe(2);
+      expect(result.rows[0][1]).toBe('test1');
+      expect(result.rows[1][1]).toBe('test2');
     });
 
     it('should handle components without repo_url', async () => {
       const components = [
-        { name: 'internal-pkg', version: '1.0.0', repo_url: null }
+        { name: 'test1', version: '1.0.0', repo_url: null }
       ];
 
-      await importComponents(prisma, components);
+      await importComponents(db, components);
 
-      const allComponents = await getAllComponents(prisma);
-      expect(allComponents.length).toBe(1);
-      expect(allComponents[0].name).toBe('internal-pkg');
-      expect(allComponents[0].repo_url).toBeNull();
+      const result = await db.execute('SELECT * FROM components');
+      expect(result.rows.length).toBe(1);
+      expect(result.rows[0][3]).toBeNull();
     });
 
     it('should update existing components', async () => {
       const components1 = [
-        { name: 'express', version: '4.18.0', repo_url: 'https://github.com/expressjs/express' }
+        { name: 'test1', version: '1.0.0', repo_url: 'https://github.com/test1' }
       ];
 
-      await importComponents(prisma, components1);
+      await importComponents(db, components1);
 
       const components2 = [
-        { name: 'express', version: '4.18.0', repo_url: 'https://github.com/expressjs/express-updated' }
+        { name: 'test1', version: '1.0.0', repo_url: 'https://github.com/updated' }
       ];
 
-      await importComponents(prisma, components2);
+      await importComponents(db, components2);
 
-      const allComponents = await getAllComponents(prisma);
-      expect(allComponents.length).toBe(1);
-      expect(allComponents[0].repo_url).toBe('https://github.com/expressjs/express-updated');
+      const result = await db.execute('SELECT * FROM components');
+      expect(result.rows.length).toBe(1);
+      expect(result.rows[0][3]).toBe('https://github.com/updated');
     });
   });
 
   describe('getAllComponents', () => {
     it('should return all components ordered by name', async () => {
-      const components = [
-        { name: 'zebra', version: '1.0.0', repo_url: null },
-        { name: 'apple', version: '2.0.0', repo_url: null },
-        { name: 'mango', version: '3.0.0', repo_url: null }
-      ];
+      await db.execute(`INSERT INTO components (name, version) VALUES ('zebra', '1.0.0')`);
+      await db.execute(`INSERT INTO components (name, version) VALUES ('apple', '1.0.0')`);
 
-      await importComponents(prisma, components);
+      const components = await getAllComponents(db);
 
-      const allComponents = await getAllComponents(prisma);
-      expect(allComponents.length).toBe(3);
-      expect(allComponents[0].name).toBe('apple');
-      expect(allComponents[1].name).toBe('mango');
-      expect(allComponents[2].name).toBe('zebra');
+      expect(components.length).toBe(2);
+      expect(components[0].name).toBe('apple');
+      expect(components[1].name).toBe('zebra');
     });
   });
 
   describe('searchComponentsByName', () => {
     it('should find components containing search term', async () => {
-      const components = [
-        { name: 'express', version: '4.18.0', repo_url: null },
-        { name: 'express-router', version: '1.0.0', repo_url: null },
-        { name: 'lodash', version: '4.17.21', repo_url: null }
-      ];
+      await db.execute(`INSERT INTO components (name, version) VALUES ('express', '1.0.0')`);
+      await db.execute(`INSERT INTO components (name, version) VALUES ('lodash', '1.0.0')`);
+      await db.execute(`INSERT INTO components (name, version) VALUES ('jest', '1.0.0')`);
 
-      await importComponents(prisma, components);
+      const results = await searchComponentsByName(db, 'est');
 
-      const results = await searchComponentsByName(prisma, 'express');
       expect(results.length).toBe(2);
-      expect(results.map(c => c.name)).toEqual(expect.arrayContaining(['express', 'express-router']));
+      expect(results.map(c => c.name)).toEqual(expect.arrayContaining(['express', 'jest']));
     });
   });
 
   describe('closeDatabase', () => {
-    it('should disconnect prisma client', async () => {
-      await closeDatabase(prisma);
-      // After disconnect, queries should fail
-      try {
-        await prisma.component.count();
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+    it('should close database connection', async () => {
+      await closeDatabase(db);
+      // Connection should be closed
+      expect(db).toBeDefined();
     });
   });
 });

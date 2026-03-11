@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { PrismaClient } = require('@prisma/client');
+const { createClient } = require('@libsql/client');
 const { execSync } = require('child_process');
 const { analyze } = require('../src/index');
 
@@ -28,17 +28,13 @@ describe('Main Module', () => {
    */
   async function createTables(dbPath) {
     const resolvedPath = path.resolve(__dirname, '..', dbPath);
-    const prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url: `file:${resolvedPath}`
-        }
-      }
+    const libsql = createClient({
+      url: `file:${resolvedPath}`
     });
-    
+
     try {
       // Create tables manually for testing (idempotent)
-      await prisma.$executeRawUnsafe(`
+      await libsql.execute(`
         CREATE TABLE IF NOT EXISTS components (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT NOT NULL,
@@ -49,21 +45,21 @@ describe('Main Module', () => {
         )
       `);
 
-      await prisma.$executeRawUnsafe(`
+      await libsql.execute(`
         CREATE TABLE IF NOT EXISTS test_files (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           path TEXT NOT NULL UNIQUE
         )
       `);
 
-      await prisma.$executeRawUnsafe(`
+      await libsql.execute(`
         CREATE TABLE IF NOT EXISTS source_files (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           path TEXT NOT NULL UNIQUE
         )
       `);
 
-      await prisma.$executeRawUnsafe(`
+      await libsql.execute(`
         CREATE TABLE IF NOT EXISTS functions (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           sourceFileId INTEGER NOT NULL,
@@ -76,7 +72,7 @@ describe('Main Module', () => {
         )
       `);
 
-      await prisma.$executeRawUnsafe(`
+      await libsql.execute(`
         CREATE TABLE IF NOT EXISTS function_hits (
           testFileId INTEGER NOT NULL,
           functionId INTEGER NOT NULL,
@@ -87,23 +83,19 @@ describe('Main Module', () => {
     } catch (e) {
       // Tables may already exist
     }
-    
-    await prisma.$disconnect();
+
+    libsql.close();
   }
 
   /**
-   * Creates a Prisma client for querying the test database
+   * Creates a libsql client for querying the test database
    */
-  async function getPrismaForDb(dbPath) {
+  async function getLibsqlForDb(dbPath) {
     const resolvedPath = path.resolve(__dirname, '..', dbPath);
-    const prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url: `file:${resolvedPath}`
-        }
-      }
+    const libsql = createClient({
+      url: `file:${resolvedPath}`
     });
-    return prisma;
+    return libsql;
   }
 
   describe('analyze', () => {
@@ -149,7 +141,7 @@ describe('Main Module', () => {
     it('should create database with correct schema', async () => {
       // First create the schema
       await createTables(testDBPath);
-      
+
       // Then run analyze (which will insert data)
       await analyze(testProjectPath, {
         dbPath: testDBPath,
@@ -158,19 +150,19 @@ describe('Main Module', () => {
       });
 
       // Query with a fresh connection
-      const prisma = await getPrismaForDb(testDBPath);
-      const component = await prisma.component.findFirst();
-      expect(component).toBeDefined();
-      expect(component.name).toBeDefined();
-      expect(component.version).toBeDefined();
+      const libsql = await getLibsqlForDb(testDBPath);
+      const result = await libsql.execute('SELECT * FROM components LIMIT 1');
+      expect(result.rows.length).toBe(1);
+      expect(result.rows[0][1]).toBeDefined(); // name
+      expect(result.rows[0][2]).toBeDefined(); // version
 
-      await prisma.$disconnect();
+      libsql.close();
     });
 
     it('should include all required fields in components', async () => {
       // First create the schema
       await createTables(testDBPath);
-      
+
       // Then run analyze (which will insert data)
       await analyze(testProjectPath, {
         dbPath: testDBPath,
@@ -179,17 +171,17 @@ describe('Main Module', () => {
       });
 
       // Query with a fresh connection
-      const prisma = await getPrismaForDb(testDBPath);
-      const component = await prisma.component.findFirst();
+      const libsql = await getLibsqlForDb(testDBPath);
+      const result = await libsql.execute('SELECT * FROM components LIMIT 1');
+      
+      expect(result.rows.length).toBe(1);
+      expect(result.rows[0][0]).toBeDefined(); // id
+      expect(result.rows[0][1]).toBeDefined(); // name
+      expect(result.rows[0][2]).toBeDefined(); // version
+      expect(result.rows[0][3]).toBeDefined(); // repo_url
+      expect(result.rows[0][4]).toBeDefined(); // created_at
 
-      expect(component).toBeDefined();
-      expect(component.id).toBeDefined();
-      expect(component.name).toBeDefined();
-      expect(component.version).toBeDefined();
-      expect(component.repo_url).toBeDefined();
-      expect(component.created_at).toBeDefined();
-
-      await prisma.$disconnect();
+      libsql.close();
     });
   });
 });

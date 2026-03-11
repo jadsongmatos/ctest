@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const os = require('os');
 const { downloadRepos, installDependencies, cleanupRepos } = require('./repo-downloader');
 const { scanDownloadedDependencies, scanAllDependencies } = require('./dependency-scanner');
+const { upsertTestFile, upsertSourceFile, upsertFunction, upsertFunctionHit } = require('./database-libsql');
 
 const isWin = process.platform === 'win32';
 const npx = isWin ? 'npx.cmd' : 'npx';
@@ -44,14 +45,14 @@ function hash(s) {
 
 /**
  * Maps test functions to source functions using Jest coverage and stores in database
- * @param {Object} prisma - Prisma client instance
+ * @param {Object} db - libsql client instance
  * @param {string} projectPath - Path to the npm project with Jest tests
  * @param {Object} options - Options object
  * @param {boolean} options.downloadDependencies - Whether to download dependencies with repo_url (default: false)
  * @param {boolean} options.scanDependencies - Whether to scan dependencies for functions (default: false)
  * @returns {Object} - Summary of mapped functions
  */
-async function mapFunctions(prisma, projectPath, options = {}) {
+async function mapFunctions(db, projectPath, options = {}) {
   const {
     downloadDependencies: shouldDownloadDeps = false,
     scanDependencies: shouldScanDeps = false
@@ -69,13 +70,14 @@ async function mapFunctions(prisma, projectPath, options = {}) {
   let downloadInfo = null;
   if (shouldDownloadDeps) {
     console.log('\nFetching components with repo_url from database...');
-    const componentsWithRepo = await prisma.component.findMany({
-      where: {
-        repo_url: {
-          not: null
-        }
-      }
-    });
+    const result = await db.execute('SELECT * FROM components WHERE repo_url IS NOT NULL');
+    const componentsWithRepo = result.rows.map(row => ({
+      id: row[0],
+      name: row[1],
+      version: row[2],
+      repo_url: row[3],
+      created_at: row[4]
+    }));
 
     if (componentsWithRepo.length > 0) {
       console.log(`Found ${componentsWithRepo.length} components with repo_url`);
@@ -98,12 +100,12 @@ async function mapFunctions(prisma, projectPath, options = {}) {
     
     // First scan downloaded dependencies (if available)
     if (downloadInfo?.results) {
-      const downloadedResult = await scanDownloadedDependencies(prisma, downloadInfo);
+      const downloadedResult = await scanDownloadedDependencies(db, downloadInfo);
       console.log(`Found ${downloadedResult.functions} functions in ${downloadedResult.dependencies} downloaded dependencies`);
     }
     
     // Then scan local node_modules
-    const localResult = await scanAllDependencies(prisma, resolvedProjectPath);
+    const localResult = await scanAllDependencies(db, resolvedProjectPath);
     console.log(`Found ${localResult.functions} functions in ${localResult.dependencies} local dependencies`);
   }
 
@@ -133,7 +135,7 @@ async function mapFunctions(prisma, projectPath, options = {}) {
 
   // Clear old relations (keep catalog of functions/files)
   console.log('Clearing old function_hits...');
-  await prisma.functionHit.deleteMany();
+  await db.execute('DELETE FROM function_hits');
 
   let processed = 0;
   for (const testFileAbs of testFiles) {
@@ -198,8 +200,8 @@ async function mapFunctions(prisma, projectPath, options = {}) {
       }
     }
 
-    // Store in database using Prisma
-    await storeFunctionHits(prisma, testPath, called);
+    // Store in database
+    await storeFunctionHits(db, testPath, called);
     console.log(`  -> Recorded ${called.length} functions`);
   }
 
@@ -213,10 +215,15 @@ async function mapFunctions(prisma, projectPath, options = {}) {
   }
 
   // Show summary
-  const testCount = await prisma.testFile.count();
-  const sourceCount = await prisma.sourceFile.count();
-  const fnCount = await prisma.function.count();
-  const hitsCount = await prisma.functionHit.count();
+  const testCountResult = await db.execute('SELECT COUNT(*) as count FROM test_files');
+  const sourceCountResult = await db.execute('SELECT COUNT(*) as count FROM source_files');
+  const fnCountResult = await db.execute('SELECT COUNT(*) as count FROM functions');
+  const hitsCountResult = await db.execute('SELECT COUNT(*) as count FROM function_hits');
+
+  const testCount = testCountResult.rows[0][0];
+  const sourceCount = sourceCountResult.rows[0][0];
+  const fnCount = fnCountResult.rows[0][0];
+  const hitsCount = hitsCountResult.rows[0][0];
 
   console.log('\nFunction mapping summary:');
   console.log(`  Test files: ${testCount}`);
@@ -233,86 +240,24 @@ async function mapFunctions(prisma, projectPath, options = {}) {
 }
 
 /**
- * Stores function hits in the database using Prisma
- * @param {Object} prisma - Prisma client instance
+ * Stores function hits in the database
+ * @param {Object} db - libsql client instance
  * @param {string} testPath - Path to the test file
  * @param {Array} calledFunctions - Array of called function data
  */
-async function storeFunctionHits(prisma, testPath, calledFunctions) {
+async function storeFunctionHits(db, testPath, calledFunctions) {
   // Ensure test file exists
-  await prisma.testFile.upsert({
-    where: { path: testPath },
-    update: {},
-    create: { path: testPath }
-  });
-
-  const testFile = await prisma.testFile.findUnique({
-    where: { path: testPath }
-  });
+  const testFileId = await upsertTestFile(db, testPath);
 
   for (const fn of calledFunctions) {
     // Ensure source file exists
-    await prisma.sourceFile.upsert({
-      where: { path: fn.sourcePath },
-      update: {},
-      create: { path: fn.sourcePath }
-    });
-
-    const sourceFile = await prisma.sourceFile.findUnique({
-      where: { path: fn.sourcePath }
-    });
+    const sourceFileId = await upsertSourceFile(db, fn.sourcePath);
 
     // Ensure function exists
-    await prisma.function.upsert({
-      where: {
-        sourceFileId_name_startLine_startCol_endLine_endCol: {
-          sourceFileId: sourceFile.id,
-          name: fn.name,
-          startLine: fn.startLine,
-          startCol: fn.startCol,
-          endLine: fn.endLine,
-          endCol: fn.endCol
-        }
-      },
-      update: {},
-      create: {
-        sourceFileId: sourceFile.id,
-        name: fn.name,
-        startLine: fn.startLine,
-        startCol: fn.startCol,
-        endLine: fn.endLine,
-        endCol: fn.endCol
-      }
-    });
-
-    const func = await prisma.function.findFirst({
-      where: {
-        sourceFileId: sourceFile.id,
-        name: fn.name,
-        startLine: fn.startLine,
-        startCol: fn.startCol,
-        endLine: fn.endLine,
-        endCol: fn.endCol
-      }
-    });
+    const functionId = await upsertFunction(db, sourceFileId, fn);
 
     // Upsert function hit
-    await prisma.functionHit.upsert({
-      where: {
-        testFileId_functionId: {
-          testFileId: testFile.id,
-          functionId: func.id
-        }
-      },
-      update: {
-        hits: fn.hits
-      },
-      create: {
-        testFileId: testFile.id,
-        functionId: func.id,
-        hits: fn.hits
-      }
-    });
+    await upsertFunctionHit(db, testFileId, functionId, fn.hits);
   }
 }
 

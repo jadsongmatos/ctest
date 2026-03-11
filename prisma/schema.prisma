@@ -3,8 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:../db/ctest.db"
+  provider     = "sqlite"
   relationMode = "prisma"
 }
 

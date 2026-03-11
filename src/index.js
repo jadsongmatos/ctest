@@ -3,7 +3,7 @@
 const path = require('path');
 const fs = require('fs');
 const { generateSBOM, readSBOM, extractComponents } = require('./lib/sbom');
-const { openDatabase, importComponents, getAllComponents, closeDatabase } = require('./lib/database');
+const { openDatabase, importComponents, getAllComponents, closeDatabase } = require('./lib/database-libsql');
 const { mapFunctions } = require('./lib/functions');
 
 /**

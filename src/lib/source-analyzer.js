@@ -26,15 +26,33 @@ function analyzeSourceFile(filePath) {
 
     // First pass: extract all imports/requires and build parent relationships
     traverse(ast, (node, parent) => {
-      // Handle require() calls: const _ = require('lodash')
+      // Handle require() calls: const _ = require('lodash') or const { createClient } = require('@libsql/client')
       if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && node.callee.name === 'require') {
         const arg = node.arguments[0];
         if (arg && arg.type === 'StringLiteral') {
           const libName = arg.value;
           // Get the variable name from the parent VariableDeclarator
           if (parent && parent.type === 'VariableDeclarator' && parent.id) {
-            const varName = parent.id.name;
-            imports[varName] = libName;
+            // Handle destructured require: const { createClient } = require('@libsql/client')
+            if (parent.id.type === 'ObjectPattern') {
+              for (const prop of parent.id.properties) {
+                if (prop.type === 'Property' || prop.type === 'ObjectProperty') {
+                  const importedName = prop.key.name || prop.key.value;
+                  const localName = prop.value.name;
+                  if (importedName && localName) {
+                    if (!libraryUsage[libName]) {
+                      libraryUsage[libName] = { functions: new Set(), members: {} };
+                    }
+                    libraryUsage[libName].functions.add(importedName);
+                    imports[localName] = libName;
+                  }
+                }
+              }
+            } else if (parent.id.type === 'Identifier') {
+              // Handle simple require: const _ = require('lodash')
+              const varName = parent.id.name;
+              imports[varName] = libName;
+            }
           }
         }
       }

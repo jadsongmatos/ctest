@@ -78,7 +78,7 @@ if (require.main === module) {
         downloadDependencies: downloadDependenciesFlag,
         sourceFile: sourceFileFlag ? sourceFileFlag.split('=')[1] : undefined
       });
-      console.log(`\nAnalysis complete. Database: ${resolvedProjectPath}/ctest.db`);
+      console.log(`\nAnalysis complete. Database: ${projectPath}/ctest.db`);
       console.log(`Generated ${result.sourceTestsMarkdown.generated} markdown files`);
       process.exit(0);
     } catch (error) {

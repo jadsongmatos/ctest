@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const { scanDirectory } = require('./source-parser');
-const { upsertExternalComponent, upsertExternalTestFile } = require('./database-libsql');
 const { analyzeSourceFile } = require('./source-analyzer');
 
 /**
@@ -50,7 +49,7 @@ function isTestFile(filePath) {
 
 /**
  * Scans a downloaded external library for test files
- * @param {Object} db - Database client instance
+ * @param {Object} db - Database client instance (Prisma)
  * @param {string} componentName - Component name
  * @param {string} componentVersion - Component version
  * @param {string} componentPath - Path to the downloaded component
@@ -65,8 +64,25 @@ async function scanExternalTestFiles(db, componentName, componentVersion, compon
 
   console.log(`\nScanning external tests for: ${componentName}@${componentVersion}`);
 
-  // Register external component
-  const externalComponentId = await upsertExternalComponent(db, componentName, componentVersion, repoUrl, componentPath);
+  // Register external component using Prisma upsert
+  const externalComponent = await db.externalComponent.upsert({
+    where: {
+      name_version: {
+        name: componentName,
+        version: componentVersion
+      }
+    },
+    update: {
+      repo_url: repoUrl,
+      downloadPath: componentPath
+    },
+    create: {
+      name: componentName,
+      version: componentVersion,
+      repo_url: repoUrl,
+      downloadPath: componentPath
+    }
+  });
 
   // Scan for all JS/TS files in the component
   const allFiles = scanDirectory(componentPath, {
@@ -78,9 +94,21 @@ async function scanExternalTestFiles(db, componentName, componentVersion, compon
 
   console.log(`  Found ${testFiles.length} test files out of ${allFiles.length} total files`);
 
-  // Store test files in database
+  // Store test files in database using Prisma upsert
   for (const testFile of testFiles) {
-    await upsertExternalTestFile(db, externalComponentId, testFile);
+    await db.externalTestFile.upsert({
+      where: {
+        externalComponentId_path: {
+          externalComponentId: externalComponent.id,
+          path: testFile
+        }
+      },
+      update: {},
+      create: {
+        externalComponentId: externalComponent.id,
+        path: testFile
+      }
+    });
   }
 
   return {
@@ -154,21 +182,30 @@ No external library functions found in this file.
 
   // Get all test files for components that match our library usage
   for (const [libName, usage] of Object.entries(libraryUsage)) {
-    // Get component from database
-    const componentResult = await db.execute({
-      sql: 'SELECT id, name, version FROM external_components WHERE name = ?',
-      args: [libName]
+    // Normalize library name for database lookup
+    // Database stores names without @ scope and with various formats
+    const normalizedLibName = libName.replace(/^@/, '');
+    const simpleName = normalizedLibName.split('/').pop(); // e.g., @libsql/client -> client
+
+    // Get component from database using Prisma (try multiple matching strategies)
+    const components = await db.externalComponent.findMany({
+      where: {
+        OR: [
+          { name: libName },
+          { name: normalizedLibName },
+          { repo_url: { contains: `/${simpleName}` } }
+        ]
+      }
     });
 
-    if (componentResult.rows.length > 0) {
-      for (const comp of componentResult.rows) {
-        // Get test files for this component
-        const testFilesResult = await db.execute({
-          sql: 'SELECT id, path FROM external_test_files WHERE externalComponentId = ?',
-          args: [comp.id]
+    if (components.length > 0) {
+      for (const comp of components) {
+        // Get test files for this component using Prisma
+        const testFiles = await db.externalTestFile.findMany({
+          where: { externalComponentId: comp.id }
         });
 
-        for (const test of testFilesResult.rows) {
+        for (const test of testFiles) {
           if (!testsByComponent[comp.name]) {
             testsByComponent[comp.name] = {
               version: comp.version,

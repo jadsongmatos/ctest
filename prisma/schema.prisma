@@ -18,45 +18,26 @@ model Component {
   @@map("components")
 }
 
-model TestFile {
-  id            Int            @id @default(autoincrement())
-  path          String         @unique
-  functionHits  FunctionHit[]
-
-  @@map("test_files")
-}
-
-model SourceFile {
-  id         Int        @id @default(autoincrement())
-  path       String     @unique
-  functions  Function[]
-
-  @@map("source_files")
-}
-
-model Function {
-  id           Int           @id @default(autoincrement())
-  sourceFileId Int
+model ExternalComponent {
+  id           Int              @id @default(autoincrement())
   name         String
-  startLine    Int?
-  startCol     Int?
-  endLine      Int?
-  endCol       Int?
-  sourceFile   SourceFile    @relation(fields: [sourceFileId], references: [id])
-  functionHits FunctionHit[]
+  version      String
+  repo_url     String?
+  downloadPath String?
+  createdAt    DateTime         @default(now())
 
-  @@unique([sourceFileId, name, startLine, startCol, endLine, endCol])
-  @@index([name])
-  @@map("functions")
+  externalTestFiles ExternalTestFile[]
+
+  @@unique([name, version])
+  @@map("external_components")
 }
 
-model FunctionHit {
-  testFileId Int
-  functionId Int
-  hits       Int
-  testFile   TestFile   @relation(fields: [testFileId], references: [id])
-  function   Function   @relation(fields: [functionId], references: [id])
+model ExternalTestFile {
+  id              Int                @id @default(autoincrement())
+  externalComponentId Int
+  path            String
+  externalComponent ExternalComponent  @relation(fields: [externalComponentId], references: [id], onDelete: Cascade)
 
-  @@id([testFileId, functionId])
-  @@map("function_hits")
+  @@unique([externalComponentId, path])
+  @@map("external_test_files")
 }

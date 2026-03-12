@@ -11,11 +11,13 @@ const { generateSourceFileTestsMarkdown } = require('./external-test-extractor')
  * @param {string} projectPath - Path to the npm project
  * @param {Object} options - Options object
  * @param {boolean} options.downloadDependencies - Whether to download dependencies with repo_url (default: false)
+ * @param {string} options.sourceFile - Optional: generate markdown for a single source file only
  * @returns {Object} - Summary of generated markdown files
  */
 async function generateSourceTestsMarkdown(db, projectPath, options = {}) {
   const {
-    downloadDependencies: shouldDownloadDeps = false
+    downloadDependencies: shouldDownloadDeps = false,
+    sourceFile: singleSourceFile
   } = options;
 
   const resolvedProjectPath = path.resolve(projectPath);
@@ -59,26 +61,51 @@ async function generateSourceTestsMarkdown(db, projectPath, options = {}) {
     await scanAllExternalTests(db, downloadInfo);
   }
 
-  // Scan source files in the project (excluding node_modules, test files, etc.)
-  const sourceFiles = scanSourceFiles(resolvedProjectPath);
-  console.log(`\nFound ${sourceFiles.length} source files`);
-
-  // Generate markdown for each source file
+  // Generate markdown for source file(s)
   const generatedFiles = [];
-  for (const sourceFile of sourceFiles) {
-    const relativePath = path.relative(resolvedProjectPath, sourceFile);
-    const outputFile = sourceFile + '.md';
+  
+  if (singleSourceFile) {
+    // Generate markdown for a single file
+    const sourceFilePath = path.resolve(resolvedProjectPath, singleSourceFile);
     
-    console.log(`\nGenerating markdown for: ${relativePath}`);
-    const result = await generateSourceFileTestsMarkdown(db, sourceFile, outputFile);
+    if (!fs.existsSync(sourceFilePath)) {
+      console.warn(`Warning: Source file not found: ${sourceFilePath}`);
+      return { generated: 0, files: [] };
+    }
+    
+    const outputFile = sourceFilePath + '.md';
+    
+    console.log(`\nGenerating markdown for: ${singleSourceFile}`);
+    const result = await generateSourceFileTestsMarkdown(db, sourceFilePath, outputFile);
     
     if (result.generated) {
       generatedFiles.push({
-        sourceFile: relativePath,
+        sourceFile: singleSourceFile,
         outputFile: path.relative(resolvedProjectPath, outputFile),
         libraries: result.libraries,
         functions: result.functions
       });
+    }
+  } else {
+    // Generate markdown for all source files in the project
+    const sourceFiles = scanSourceFiles(resolvedProjectPath);
+    console.log(`\nFound ${sourceFiles.length} source files`);
+
+    for (const sourceFile of sourceFiles) {
+      const relativePath = path.relative(resolvedProjectPath, sourceFile);
+      const outputFile = sourceFile + '.md';
+      
+      console.log(`\nGenerating markdown for: ${relativePath}`);
+      const result = await generateSourceFileTestsMarkdown(db, sourceFile, outputFile);
+      
+      if (result.generated) {
+        generatedFiles.push({
+          sourceFile: relativePath,
+          outputFile: path.relative(resolvedProjectPath, outputFile),
+          libraries: result.libraries,
+          functions: result.functions
+        });
+      }
     }
   }
 

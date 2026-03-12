@@ -13,12 +13,14 @@ const { generateSourceTestsMarkdown } = require('./lib/functions');
  * @param {string} options.dbPath - Path to SQLite database (default: ctest.db)
  * @param {string} options.sbomPath - Path to SBOM file (default: sbom.cdx.json)
  * @param {boolean} options.downloadDependencies - Whether to download dependencies with repo_url (default: false)
+ * @param {string} options.sourceFile - Optional: generate markdown for a single source file only
  */
 async function analyze(projectPath, options = {}) {
   const {
     dbPath = path.join(process.cwd(), 'db', 'ctest.db'),
     sbomPath = 'sbom.cdx.json',
-    downloadDependencies: shouldDownloadDeps = false
+    downloadDependencies: shouldDownloadDeps = false,
+    sourceFile: singleSourceFile
   } = options;
 
   const resolvedProjectPath = path.resolve(projectPath);
@@ -50,7 +52,8 @@ async function analyze(projectPath, options = {}) {
   // Generate source tests markdown
   console.log('\nGenerating source tests markdown...');
   const sourceTestsMarkdown = await generateSourceTestsMarkdown(prisma, resolvedProjectPath, {
-    downloadDependencies: shouldDownloadDeps
+    downloadDependencies: shouldDownloadDeps,
+    sourceFile: singleSourceFile
   });
 
   await closeDatabase(prisma);
@@ -67,11 +70,13 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   const projectPath = args[0] || process.cwd();
   const downloadDependenciesFlag = args.includes('--download-dependencies');
+  const sourceFileFlag = args.find(arg => arg.startsWith('--file='));
 
   (async () => {
     try {
       const result = await analyze(projectPath, {
-        downloadDependencies: downloadDependenciesFlag
+        downloadDependencies: downloadDependenciesFlag,
+        sourceFile: sourceFileFlag ? sourceFileFlag.split('=')[1] : undefined
       });
       console.log(`\nAnalysis complete. Database: db/ctest.db`);
       console.log(`Generated ${result.sourceTestsMarkdown.generated} markdown files`);

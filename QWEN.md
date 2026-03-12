@@ -21,13 +21,19 @@ npx @cyclonedx/cyclonedx-npm --output-format JSON --output-file sbom.cdx.json
 
 ## Uso
 
-### Gerar arquivos markdown com testes externos
+### Gerar arquivos markdown com testes externos para todo o projeto
 
 ```bash
 node src/index.js /caminho/para/projeto/npm --download-dependencies
 ```
 
-Este comando gera um arquivo `.md` para cada arquivo de código-fonte do projeto (ex: `index.js.md`), contendo:
+### Gerar arquivo markdown com testes externos para um único arquivo
+
+```bash
+node src/index.js /caminho/para/projeto/npm --download-dependencies --file=index.js
+```
+
+Este comando gera um arquivo `.md` para o arquivo de código-fonte especificado (ex: `index.js.md`), contendo:
 - Lista de bibliotecas externas usadas no arquivo
 - Funções de cada biblioteca que são utilizadas
 - Testes externos disponíveis para essas funções

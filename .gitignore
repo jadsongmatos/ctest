@@ -21,4 +21,4 @@ pnpm-debug.log*
 coverage/
 
 ref/
-db/
+*.db

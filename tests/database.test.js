@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const { execSync } = require('child_process');
 const {
   openDatabase,
   importComponents,
@@ -10,32 +11,28 @@ const {
 
 describe('Database Module (libsql)', () => {
   let db;
-  let originalDbPath;
-
-  beforeAll(async () => {
-    // Save original DATABASE_URL if set
-    originalDbPath = process.env.DATABASE_URL;
-  });
+  const testDbPath = path.join(__dirname, 'test-ctest.db');
+  const projectRoot = path.join(__dirname, '..');
 
   beforeEach(async () => {
-    // Use a test-specific database to avoid conflicts
-    const testDbPath = path.join(__dirname, 'test-ctest.db');
-    process.env.DATABASE_URL = `file:${testDbPath}`;
-    db = await openDatabase();
-    // Clear only test-related data, not components (which may be populated by other tests)
-    await db.execute('DELETE FROM function_hits');
-    await db.execute('DELETE FROM functions');
-    await db.execute('DELETE FROM source_files');
-    await db.execute('DELETE FROM test_files');
+    // Delete test database if it exists and create a fresh one with schema
+    try {
+      fs.unlinkSync(testDbPath);
+    } catch (e) {
+      // Ignore if file doesn't exist
+    }
+    
+    // Create database with schema
+    execSync(`DATABASE_URL=file:${testDbPath} npx prisma db push --accept-data-loss`, {
+      cwd: projectRoot,
+      stdio: 'ignore'
+    });
+    
+    // Open database connection
+    db = await openDatabase('test-ctest.db', __dirname);
   });
 
   afterEach(async () => {
-    // Restore original DATABASE_URL
-    if (originalDbPath) {
-      process.env.DATABASE_URL = originalDbPath;
-    } else {
-      delete process.env.DATABASE_URL;
-    }
     // Clean up test database
     const testDbPath = path.join(__dirname, 'test-ctest.db');
     try {
@@ -51,11 +48,15 @@ describe('Database Module (libsql)', () => {
     });
 
     it('should create components table', async () => {
-      await db.execute(`INSERT INTO components (name, version) VALUES ('test', '1.0.0')`);
-      const result = await db.execute('SELECT * FROM components WHERE name = ?', { args: ['test'] });
-      expect(result.rows.length).toBe(1);
-      expect(result.rows[0][1]).toBe('test');
-      expect(result.rows[0][2]).toBe('1.0.0');
+      await db.component.create({
+        data: { name: 'test', version: '1.0.0' }
+      });
+      const result = await db.component.findMany({
+        where: { name: 'test' }
+      });
+      expect(result.length).toBe(1);
+      expect(result[0].name).toBe('test');
+      expect(result[0].version).toBe('1.0.0');
     });
   });
 
@@ -68,10 +69,10 @@ describe('Database Module (libsql)', () => {
 
       await importComponents(db, components);
 
-      const result = await db.execute('SELECT * FROM components ORDER BY name');
-      expect(result.rows.length).toBe(2);
-      expect(result.rows[0][1]).toBe('test1');
-      expect(result.rows[1][1]).toBe('test2');
+      const result = await db.component.findMany({ orderBy: { name: 'asc' } });
+      expect(result.length).toBe(2);
+      expect(result[0].name).toBe('test1');
+      expect(result[1].name).toBe('test2');
     });
 
     it('should handle components without repo_url', async () => {
@@ -81,9 +82,9 @@ describe('Database Module (libsql)', () => {
 
       await importComponents(db, components);
 
-      const result = await db.execute('SELECT * FROM components');
-      expect(result.rows.length).toBe(1);
-      expect(result.rows[0][3]).toBeNull();
+      const result = await db.component.findMany();
+      expect(result.length).toBe(1);
+      expect(result[0].repo_url).toBeNull();
     });
 
     it('should update existing components', async () => {
@@ -99,16 +100,16 @@ describe('Database Module (libsql)', () => {
 
       await importComponents(db, components2);
 
-      const result = await db.execute('SELECT * FROM components');
-      expect(result.rows.length).toBe(1);
-      expect(result.rows[0][3]).toBe('https://github.com/updated');
+      const result = await db.component.findMany();
+      expect(result.length).toBe(1);
+      expect(result[0].repo_url).toBe('https://github.com/updated');
     });
   });
 
   describe('getAllComponents', () => {
     it('should return all components ordered by name', async () => {
-      await db.execute(`INSERT INTO components (name, version) VALUES ('zebra', '1.0.0')`);
-      await db.execute(`INSERT INTO components (name, version) VALUES ('apple', '1.0.0')`);
+      await db.component.create({ data: { name: 'zebra', version: '1.0.0' } });
+      await db.component.create({ data: { name: 'apple', version: '1.0.0' } });
 
       const components = await getAllComponents(db);
 
@@ -120,14 +121,15 @@ describe('Database Module (libsql)', () => {
 
   describe('searchComponentsByName', () => {
     it('should find components containing search term', async () => {
-      await db.execute(`INSERT INTO components (name, version) VALUES ('express', '1.0.0')`);
-      await db.execute(`INSERT INTO components (name, version) VALUES ('lodash', '1.0.0')`);
-      await db.execute(`INSERT INTO components (name, version) VALUES ('jest', '1.0.0')`);
+      await db.component.create({ data: { name: 'express', version: '1.0.0' } });
+      await db.component.create({ data: { name: 'lodash', version: '1.0.0' } });
+      await db.component.create({ data: { name: 'jest-testing', version: '1.0.0' } });
+      await db.component.create({ data: { name: 'test-lib', version: '1.0.0' } });
 
-      const results = await searchComponentsByName(db, 'est');
+      const results = await searchComponentsByName(db, 'test');
 
       expect(results.length).toBe(2);
-      expect(results.map(c => c.name)).toEqual(expect.arrayContaining(['express', 'jest']));
+      expect(results.map(c => c.name)).toEqual(expect.arrayContaining(['jest-testing', 'test-lib']));
     });
   });
 

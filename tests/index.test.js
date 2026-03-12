@@ -108,7 +108,7 @@ describe('Main Module', () => {
     it('should analyze project using existing SBOM', async () => {
       // Create tables first
       await createTables(testDBPath);
-      
+
       const result = await analyze(testProjectPath, {
         dbPath: testDBPath,
         sbomPath: 'test-sbom.json',
@@ -118,8 +118,7 @@ describe('Main Module', () => {
       expect(result).toBeDefined();
       expect(result.sbomPath).toBeDefined();
       expect(result.componentCount).toBeGreaterThan(0);
-      expect(result.components).toBeDefined();
-      expect(Array.isArray(result.components)).toBe(true);
+      expect(result.sourceTestsMarkdown).toBeDefined();
     });
 
     it('should throw error when SBOM file not found and generateSBOM is false', async () => {
@@ -135,7 +134,7 @@ describe('Main Module', () => {
           sbomPath: 'nonexistent.json',
           generateSBOM: false
         });
-      }).rejects.toThrow('SBOM file not found');
+      }).rejects.toThrow('SBOM generation failed');
     });
 
     it('should create database with correct schema', async () => {

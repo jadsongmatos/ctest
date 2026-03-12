@@ -31,19 +31,19 @@ const TEST_PATTERNS = [
 function isTestFile(filePath) {
   const fileName = path.basename(filePath);
   const pathParts = filePath.split(path.sep);
-  
+
   for (const part of pathParts) {
     if (TEST_PATTERNS.includes(part)) {
       return true;
     }
   }
-  
+
   for (const pattern of TEST_PATTERNS) {
     if (fileName.includes(pattern)) {
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -156,7 +156,7 @@ async function scanAllExternalTests(db, downloadInfo) {
 
 /**
  * Generates a markdown file with external tests for a specific source file
- * @param {Object} db - Database client instance
+ * @param {Object} db - Database client instance (Prisma)
  * @param {string} sourceFilePath - Path to the source file
  * @param {string} outputFile - Path to the output markdown file
  * @returns {Object} - Summary of generated markdown
@@ -166,7 +166,7 @@ async function generateSourceFileTestsMarkdown(db, sourceFilePath, outputFile) {
 
   // Analyze source file to find library usage
   const libraryUsage = analyzeSourceFile(sourceFilePath);
-  
+
   if (Object.keys(libraryUsage).length === 0) {
     console.log('  No external library usage found.');
     const content = `# External Tests for ${path.basename(sourceFilePath)}
@@ -251,9 +251,9 @@ Testes de dependências externas usadas neste arquivo.
   for (const [componentName, data] of Object.entries(testsByComponent)) {
     const usedFuncs = Array.from(data.usedFunctions);
     totalFunctions += usedFuncs.length;
-    
+
     content += `## ${componentName}@${data.version}\n\n`;
-    content += `**Funções usadas neste arquivo:** ${usedFuncs.join(', ')}\n\n`;
+    content += `**Funções usados neste arquivo:** ${usedFuncs.join(', ')}\n\n`;
 
     for (const [testPath, testData] of Object.entries(data.tests)) {
       const testFileName = path.basename(testPath);

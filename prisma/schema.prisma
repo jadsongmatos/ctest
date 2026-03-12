@@ -18,6 +18,52 @@ model Component {
   @@map("components")
 }
 
+model TestFile {
+  id        Int      @id @default(autoincrement())
+  path      String   @unique
+
+  functionHits FunctionHit[]
+
+  @@map("test_files")
+}
+
+model SourceFile {
+  id        Int      @id @default(autoincrement())
+  path      String   @unique
+
+  functions Function[]
+
+  @@map("source_files")
+}
+
+model Function {
+  id        Int      @id @default(autoincrement())
+  sourceFileId Int
+  name      String
+  startLine Int?
+  startCol  Int?
+  endLine   Int?
+  endCol    Int?
+  sourceFile SourceFile @relation(fields: [sourceFileId], references: [id], onDelete: Cascade)
+
+  functionHits FunctionHit[]
+
+  @@unique([sourceFileId, name, startLine, startCol, endLine, endCol])
+  @@index([name])
+  @@map("functions")
+}
+
+model FunctionHit {
+  testFileId Int
+  functionId Int
+  hits       Int
+  testFile   TestFile   @relation(fields: [testFileId], references: [id], onDelete: Cascade)
+  function   Function   @relation(fields: [functionId], references: [id], onDelete: Cascade)
+
+  @@id([testFileId, functionId])
+  @@map("function_hits")
+}
+
 model ExternalComponent {
   id           Int              @id @default(autoincrement())
   name         String

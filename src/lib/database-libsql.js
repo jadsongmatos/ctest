@@ -1,11 +1,13 @@
-const { createClient } = require('@libsql/client');
+const { PrismaClient } = require('@prisma/client');
+const { PrismaLibSql } = require('@prisma/adapter-libsql');
 const path = require('path');
 const fs = require('fs');
 
 /**
- * Creates or opens a database connection
+ * Creates or opens a database connection and returns a Prisma client
  * @param {string} dbPath - Path to the database file
- * @returns {Object} - Database client instance
+ * @param {string} projectPath - Project path for resolving dbPath
+ * @returns {Object} - Prisma client instance
  */
 async function openDatabase(dbPath, projectPath) {
   let resolvedPath;
@@ -24,87 +26,30 @@ async function openDatabase(dbPath, projectPath) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  const db = createClient({
+  // Set DATABASE_URL for Prisma config
+  process.env.DATABASE_URL = `file:${resolvedPath}`;
+
+  // Create Prisma adapter with connection options
+  const adapter = new PrismaLibSql({
     url: `file:${resolvedPath}`
   });
 
-  await initializeSchema(db);
+  // Create Prisma client with adapter
+  const prisma = new PrismaClient({
+    adapter
+  });
 
-  return db;
+  return prisma;
 }
 
 /**
- * Initializes the database schema if tables don't exist
- * @param {Object} db - libsql client instance
- */
-async function initializeSchema(db) {
-  try {
-    const result = await db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='components'");
-    if (result.rows.length > 0) {
-      const extResult = await db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='external_components'");
-      if (extResult.rows.length > 0) {
-        return;
-      }
-      await createExternalTestTables(db);
-      return;
-    }
-
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS components (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        version TEXT NOT NULL,
-        repo_url TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(name, version)
-      )
-    `);
-
-    await createExternalTestTables(db);
-
-    await db.execute(`CREATE INDEX IF NOT EXISTS idx_components_name ON components(name)`);
-  } catch (e) {
-    console.error('Error initializing schema:', e);
-    throw e;
-  }
-}
-
-/**
- * Creates external test tables if they don't exist
- * @param {Object} db - libsql client instance
- */
-async function createExternalTestTables(db) {
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS external_components (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      version TEXT NOT NULL,
-      repo_url TEXT,
-      downloadPath TEXT,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(name, version)
-    )
-  `);
-
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS external_test_files (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      externalComponentId INTEGER NOT NULL,
-      path TEXT NOT NULL,
-      UNIQUE(externalComponentId, path),
-      FOREIGN KEY(externalComponentId) REFERENCES external_components(id)
-    )
-  `);
-}
-
-/**
- * Inserts or updates components in the database in batches
- * @param {Object} db - Database client instance
+ * Inserts or updates components in the database in batches using Prisma
+ * @param {Object} prisma - Prisma client instance
  * @param {Array} components - Array of component objects
  * @param {number} batchSize - Number of components to process per batch (default: 50)
  * @returns {number} - Number of components inserted/updated
  */
-async function importComponents(db, components, batchSize = 50) {
+async function importComponents(prisma, components, batchSize = 50) {
   console.log(`Importing ${components.length} components in batches of ${batchSize}...`);
 
   for (let i = 0; i < components.length; i += batchSize) {
@@ -114,70 +59,126 @@ async function importComponents(db, components, batchSize = 50) {
 
     console.log(`  Batch ${batchNum}/${totalBatches} (${batch.length} components)...`);
 
-    const statements = batch.map(component => ({
-      sql: `INSERT OR REPLACE INTO components (name, version, repo_url) VALUES (?, ?, ?)`,
-      args: [component.name, component.version, component.repo_url]
-    }));
+    const promises = batch.map(component =>
+      prisma.component.upsert({
+        where: {
+          name_version: {
+            name: component.name,
+            version: component.version
+          }
+        },
+        update: {
+          repo_url: component.repo_url
+        },
+        create: {
+          name: component.name,
+          version: component.version,
+          repo_url: component.repo_url
+        }
+      })
+    );
 
-    await db.batch(statements);
+    await Promise.all(promises);
   }
 
   return components.length;
 }
 
 /**
- * Upserts an external component and returns its id
- * @param {Object} db - Database client instance
+ * Upserts an external component using Prisma and returns its id
+ * @param {Object} prisma - Prisma client instance
  * @param {string} name - Component name
  * @param {string} version - Component version
  * @param {string} repoUrl - Repository URL
  * @param {string} downloadPath - Local download path
  * @returns {number} - External component id
  */
-async function upsertExternalComponent(db, name, version, repoUrl, downloadPath) {
-  await db.execute({
-    sql: `INSERT OR REPLACE INTO external_components (name, version, repo_url, downloadPath)
-          VALUES (?, ?, ?, ?)`,
-    args: [name, version, repoUrl, downloadPath]
+async function upsertExternalComponent(prisma, name, version, repoUrl, downloadPath) {
+  const externalComponent = await prisma.externalComponent.upsert({
+    where: {
+      name_version: {
+        name,
+        version
+      }
+    },
+    update: {
+      repo_url: repoUrl,
+      downloadPath
+    },
+    create: {
+      name,
+      version,
+      repo_url: repoUrl,
+      downloadPath
+    }
   });
-  const result = await db.execute({
-    sql: `SELECT id FROM external_components WHERE name = ? AND version = ?`,
-    args: [name, version]
-  });
-  return result.rows[0][0];
+  return externalComponent.id;
 }
 
 /**
- * Upserts an external test file and returns its id
- * @param {Object} db - Database client instance
+ * Upserts an external test file using Prisma and returns its id
+ * @param {Object} prisma - Prisma client instance
  * @param {number} externalComponentId - External component id
  * @param {string} testPath - Test file path
  * @returns {number} - External test file id
  */
-async function upsertExternalTestFile(db, externalComponentId, testPath) {
-  await db.execute({
-    sql: `INSERT OR REPLACE INTO external_test_files (externalComponentId, path)
-          VALUES (?, ?)`,
-    args: [externalComponentId, testPath]
+async function upsertExternalTestFile(prisma, externalComponentId, testPath) {
+  const externalTestFile = await prisma.externalTestFile.upsert({
+    where: {
+      externalComponentId_path: {
+        externalComponentId,
+        path: testPath
+      }
+    },
+    update: {},
+    create: {
+      externalComponentId,
+      path: testPath
+    }
   });
-  const result = await db.execute({
-    sql: `SELECT id FROM external_test_files WHERE externalComponentId = ? AND path = ?`,
-    args: [externalComponentId, testPath]
-  });
-  return result.rows[0][0];
+  return externalTestFile.id;
 }
 
 /**
- * Closes the database connection
- * @param {Object} db - Database client instance
+ * Retrieves all components from the database using Prisma
+ * @param {Object} prisma - Prisma client instance
+ * @returns {Array} - Array of component records
  */
-async function closeDatabase(db) {
-  db.close();
+async function getAllComponents(prisma) {
+  return prisma.component.findMany({
+    orderBy: { name: 'asc' }
+  });
+}
+
+/**
+ * Searches for components by name using Prisma
+ * @param {Object} prisma - Prisma client instance
+ * @param {string} name - Component name to search for
+ * @returns {Array} - Array of matching component records
+ */
+async function searchComponentsByName(prisma, name) {
+  return prisma.component.findMany({
+    where: {
+      name: {
+        contains: name
+      }
+    }
+  });
+}
+
+/**
+ * Closes the Prisma client connection
+ * @param {Object} prisma - Prisma client instance
+ */
+async function closeDatabase(prisma) {
+  await prisma.$disconnect();
 }
 
 module.exports = {
   openDatabase,
   importComponents,
+  getAllComponents,
+  searchComponentsByName,
   upsertExternalComponent,
   upsertExternalTestFile,
   closeDatabase

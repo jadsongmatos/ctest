@@ -32,14 +32,9 @@ async function generateSourceTestsMarkdown(db, projectPath, options = {}) {
   let downloadInfo = null;
   if (shouldDownloadDeps) {
     console.log('\nFetching components with repo_url from database...');
-    const result = await db.execute('SELECT * FROM components WHERE repo_url IS NOT NULL');
-    const componentsWithRepo = result.rows.map(row => ({
-      id: row[0],
-      name: row[1],
-      version: row[2],
-      repo_url: row[3],
-      created_at: row[4]
-    }));
+    const componentsWithRepo = await db.component.findMany({
+      where: { repo_url: { not: null } }
+    });
 
     if (componentsWithRepo.length > 0) {
       console.log(`Found ${componentsWithRepo.length} components with repo_url`);

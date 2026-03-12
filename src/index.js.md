@@ -6,18 +6,1022 @@ Testes de dependências externas usadas neste arquivo.
 
 ## Sumário
 
-- **Total de componentes:** 1
-- **Total de arquivos de teste:** 8
+- **Total de componentes:** 6
+- **Total de arquivos de teste:** 14
 
 ---
 
+## path-scurry@
+
+**Funções usados neste arquivo:** resolve
+
+### index.ts.test.cjs
+
+**Caminho original:** `/tmp/ctest-repos-z91GLV/afdea7bc35-path-scurry/tap-snapshots/test/index.ts.test.cjs`
+
+**Funções testadas:**
+
+- `resolve`
+
+**Conteúdo do arquivo de teste:**
+
+```javascript
+/* IMPORTANT
+ * This snapshot file is auto-generated, but designed for humans.
+ * It should be checked into source control and tracked carefully.
+ * Re-generate by setting TAP_SNAPSHOT=1 and running tests.
+ * Make sure to inspect the output below.  Do not ignore changes!
+ */
+'use strict'
+exports[`test/index.ts > TAP > eloop > async > must match snapshot 1`] = `
+Object {
+  "a/bb/c/dd/e/ff/g": "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/g",
+  "aa/b/cc/d/ee/f/gg": "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/g",
+  "bigloop": undefined,
+  "dest": "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/g/dest",
+  "enoent": undefined,
+  "pivot": undefined,
+  "roundtrip": "{CWD}/.tap/fixtures/test-index.ts-eloop/home",
+}
+`
+
+exports[`test/index.ts > TAP > eloop > sync > must match snapshot 1`] = `
+Object {
+  "a/bb/c/dd/e/ff/g": "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/g",
+  "aa/b/cc/d/ee/f/gg": "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/g",
+  "bigloop": undefined,
+  "dest": "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/g/dest",
+  "enoent": undefined,
+  "pivot": undefined,
+  "roundtrip": "{CWD}/.tap/fixtures/test-index.ts-eloop/home",
+}
+`
+
+exports[`test/index.ts > TAP > eloop > walk this beast > must match snapshot 1`] = `
+Array [
+  "{CWD}/.tap/fixtures/test-index.ts-eloop",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/down",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/down",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/down",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/g",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/g/bounce",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/g/dest",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/g/down",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/g/round",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/g/up",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/gg",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/round",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/travel",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/f/up",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/ff",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/round",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/travel",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/e/up",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/ee",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/round",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/travel",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/d/up",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/dd",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/down",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/round",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/travel",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/c/up",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/cc",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/down",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/round",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/travel",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/b/up",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/bb",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/down",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/peak",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/round",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/travel",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/a/up",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/aa",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/bigloop",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/dest",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/enoent",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/home",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/pivot",
+  "{CWD}/.tap/fixtures/test-index.ts-eloop/roundtrip",
+]
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=false, walkFilter=false > initial walk, sync > must match snapshot 1`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=false, walkFilter=false > initial walk, sync > must match snapshot 2`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=false, walkFilter=false > initial walk, sync > must match snapshot 3`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=false, walkFilter=false > initial walk, sync > must match snapshot 4`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=false, walkFilter=true > initial walk, sync > must match snapshot 1`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=false, walkFilter=true > initial walk, sync > must match snapshot 2`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=false, walkFilter=true > initial walk, sync > must match snapshot 3`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=false, walkFilter=true > initial walk, sync > must match snapshot 4`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=true, walkFilter=false > initial walk, sync > must match snapshot 1`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=true, walkFilter=false > initial walk, sync > must match snapshot 2`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=true, walkFilter=false > initial walk, sync > must match snapshot 3`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=true, walkFilter=false > initial walk, sync > must match snapshot 4`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=true, walkFilter=true > initial walk, sync > must match snapshot 1`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=true, walkFilter=true > initial walk, sync > must match snapshot 2`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=true, walkFilter=true > initial walk, sync > must match snapshot 3`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=false, filter=true, walkFilter=true > initial walk, sync > must match snapshot 4`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=false, walkFilter=false > initial walk, sync > must match snapshot 1`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=false, walkFilter=false > initial walk, sync > must match snapshot 2`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=false, walkFilter=false > initial walk, sync > must match snapshot 3`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=false, walkFilter=false > initial walk, sync > must match snapshot 4`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=false, walkFilter=true > initial walk, sync > must match snapshot 1`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=false, walkFilter=true > initial walk, sync > must match snapshot 2`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=false, walkFilter=true > initial walk, sync > must match snapshot 3`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=false, walkFilter=true > initial walk, sync > must match snapshot 4`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=true, walkFilter=false > initial walk, sync > must match snapshot 1`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=true, walkFilter=false > initial walk, sync > must match snapshot 2`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=true, walkFilter=false > initial walk, sync > must match snapshot 3`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=true, walkFilter=false > initial walk, sync > must match snapshot 4`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=true, walkFilter=true > initial walk, sync > must match snapshot 1`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=true, walkFilter=true > initial walk, sync > must match snapshot 2`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=true, walkFilter=true > initial walk, sync > must match snapshot 3`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=true, filter=true, walkFilter=true > initial walk, sync > must match snapshot 4`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/x/outside",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=false, walkFilter=false > initial walk, sync > must match snapshot 1`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=false, walkFilter=false > initial walk, sync > must match snapshot 2`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=false, walkFilter=false > initial walk, sync > must match snapshot 3`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=false, walkFilter=false > initial walk, sync > must match snapshot 4`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=false, walkFilter=true > initial walk, sync > must match snapshot 1`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=false, walkFilter=true > initial walk, sync > must match snapshot 2`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=false, walkFilter=true > initial walk, sync > must match snapshot 3`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=false, walkFilter=true > initial walk, sync > must match snapshot 4`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=true, walkFilter=false > initial walk, sync > must match snapshot 1`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=true, walkFilter=false > initial walk, sync > must match snapshot 2`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=true, walkFilter=false > initial walk, sync > must match snapshot 3`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=true, walkFilter=false > initial walk, sync > must match snapshot 4`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/d/cycle",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/g",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/f",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/e",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c/d/cycle",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=true, walkFilter=true > initial walk, sync > must match snapshot 1`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=true, walkFilter=true > initial walk, sync > must match snapshot 2`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=true, walkFilter=true > initial walk, sync > must match snapshot 3`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+}
+`
+
+exports[`test/index.ts > TAP > walking > follow=undefined, filter=true, walkFilter=true > initial walk, sync > must match snapshot 4`] = `
+Set {
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/x",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/empty",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/deeplink",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b",
+  "{CWD}/.tap/fixtures/test-index.ts-walking/a/b/c",
+}
+`
+
+```
+
+---
+
+
+## path-exists@
+
+**Funções usados neste arquivo:** resolve
+
+### test.js
+
+**Caminho original:** `/tmp/ctest-repos-z91GLV/c7cde3e261-path-exists/test.js`
+
+**Funções testadas:**
+
+- `resolve`
+
+**Conteúdo do arquivo de teste:**
+
+```javascript
+import test from 'ava';
+import pathExists from '.';
+
+test('async', async t => {
+	t.true(await pathExists('test.js'));
+	t.false(await pathExists('fail'));
+});
+
+test('sync', t => {
+	t.true(pathExists.sync('test.js'));
+	t.false(pathExists.sync('fail'));
+});
+
+```
+
+---
+
+
+## path-key@
+
+**Funções usados neste arquivo:** resolve
+
+### test.js
+
+**Caminho original:** `/tmp/ctest-repos-z91GLV/bfb4e2a9c2-path-key/test.js`
+
+**Funções testadas:**
+
+- `resolve`
+
+**Conteúdo do arquivo de teste:**
+
+```javascript
+import test from 'ava';
+import pathKey from '.';
+
+test('main', t => {
+	t.is(pathKey().toUpperCase(), 'PATH');
+	t.is(pathKey({env: {PATH: ''}}), 'PATH');
+	t.is(pathKey({env: {Path: ''}, platform: 'win32'}), 'Path');
+	t.is(pathKey({env: {}, platform: 'darwin'}), 'PATH');
+	t.is(pathKey({env: {}, platform: 'win32'}), 'Path');
+	t.is(pathKey({env: {Path: '', PATH: ''}, platform: 'win32'}), 'PATH');
+	t.is(pathKey({env: {PATH: '', Path: ''}, platform: 'win32'}), 'Path');
+});
+
+```
+
+---
+
+
+## path-is-absolute@
+
+**Funções usados neste arquivo:** resolve
+
+### test.js
+
+**Caminho original:** `/tmp/ctest-repos-z91GLV/9adaed72d2-path-is-absolute/test.js`
+
+**Funções testadas:**
+
+- `resolve`
+
+**Conteúdo do arquivo de teste:**
+
+```javascript
+var assert = require('assert');
+var pathIsAbsolute = require('./');
+
+var path = {
+	posix: {
+		isAbsolute: pathIsAbsolute.posix
+	},
+	win32: {
+		isAbsolute: pathIsAbsolute.win32
+	}
+};
+
+// https://github.com/joyent/node/blob/b3fcc245fb25539909ef1d5eaa01dbf92e168633/test/simple/test-path.js#L344
+assert.equal(path.win32.isAbsolute('//server/file'), true);
+assert.equal(path.win32.isAbsolute('\\\\server\\file'), true);
+assert.equal(path.win32.isAbsolute('C:/Users/'), true);
+assert.equal(path.win32.isAbsolute('C:\\Users\\'), true);
+assert.equal(path.win32.isAbsolute('C:cwd/another'), false);
+assert.equal(path.win32.isAbsolute('C:cwd\\another'), false);
+assert.equal(path.win32.isAbsolute('directory/directory'), false);
+assert.equal(path.win32.isAbsolute('directory\\directory'), false);
+
+assert.equal(path.posix.isAbsolute('/home/foo'), true);
+assert.equal(path.posix.isAbsolute('/home/foo/..'), true);
+assert.equal(path.posix.isAbsolute('bar/'), false);
+assert.equal(path.posix.isAbsolute('./baz'), false);
+
+```
+
+---
+
+
 ## fs@
 
-**Funções usadas neste arquivo:** existsSync
+**Funções usados neste arquivo:** existsSync
 
 ### get-options.js
 
-**Caminho original:** `/tmp/ctest-repos-9AzpBu/3f4bb586f0-fs/test/common/get-options.js`
+**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/common/get-options.js`
 
 **Funções testadas:**
 
@@ -58,7 +1062,7 @@ t.test('wraps non-object values in named property', async (t) => {
 
 ### node.js
 
-**Caminho original:** `/tmp/ctest-repos-9AzpBu/3f4bb586f0-fs/test/common/node.js`
+**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/common/node.js`
 
 **Funções testadas:**
 
@@ -91,7 +1095,7 @@ t.test('returns false if range does not match', async (t) => {
 
 ### errors.js
 
-**Caminho original:** `/tmp/ctest-repos-9AzpBu/3f4bb586f0-fs/test/cp/errors.js`
+**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/cp/errors.js`
 
 **Funções testadas:**
 
@@ -188,7 +1192,7 @@ t.test('inspect', async t => {
 
 ### index.js
 
-**Caminho original:** `/tmp/ctest-repos-9AzpBu/3f4bb586f0-fs/test/cp/index.js`
+**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/cp/index.js`
 
 **Funções testadas:**
 
@@ -235,7 +1239,7 @@ t.test('can copy a directory', async (t) => {
 
 ### polyfill.js
 
-**Caminho original:** `/tmp/ctest-repos-9AzpBu/3f4bb586f0-fs/test/cp/polyfill.js`
+**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/cp/polyfill.js`
 
 **Funções testadas:**
 
@@ -631,7 +1635,7 @@ function collectEntries (dir, dirEntries) {
 
 ### move-file.js
 
-**Caminho original:** `/tmp/ctest-repos-9AzpBu/3f4bb586f0-fs/test/move-file.js`
+**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/move-file.js`
 
 **Funções testadas:**
 
@@ -917,7 +1921,7 @@ t.test('overwrite option with non-ENOENT access error', async t => {
 
 ### readdir-scoped.js
 
-**Caminho original:** `/tmp/ctest-repos-9AzpBu/3f4bb586f0-fs/test/readdir-scoped.js`
+**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/readdir-scoped.js`
 
 **Funções testadas:**
 
@@ -949,7 +1953,7 @@ t.test('readdir scoped', async (t) => {
 
 ### with-temp-dir.js
 
-**Caminho original:** `/tmp/ctest-repos-9AzpBu/3f4bb586f0-fs/test/with-temp-dir.js`
+**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/with-temp-dir.js`
 
 **Funções testadas:**
 
@@ -1016,6 +2020,101 @@ t.test('cleans up when provided function rejects', async (t) => {
     throw new Error('this is bad')
   }), { message: 'this is bad' })
   await t.rejects(lstat(tempDir), { code: 'ENOENT' }, 'temp directory was removed')
+})
+
+```
+
+---
+
+
+## fs.realpath@
+
+**Funções usados neste arquivo:** existsSync
+
+### monkeypatching.js
+
+**Caminho original:** `/tmp/ctest-repos-z91GLV/76accba941-fs.realpath/test/monkeypatching.js`
+
+**Funções testadas:**
+
+- `existsSync`
+
+**Conteúdo do arquivo de teste:**
+
+```javascript
+var t = require('tap')
+var rp = require('../')
+var fs = require('fs')
+
+rp.monkeypatch()
+t.equal(rp.realpath, fs.realpath)
+t.equal(rp.realpathSync, fs.realpathSync)
+
+rp.unmonkeypatch()
+t.notEqual(rp.realpath, fs.realpath)
+t.notEqual(rp.realpathSync, fs.realpathSync)
+
+```
+
+---
+
+### symlinks.js
+
+**Caminho original:** `/tmp/ctest-repos-z91GLV/76accba941-fs.realpath/test/symlinks.js`
+
+**Funções testadas:**
+
+- `existsSync`
+
+**Conteúdo do arquivo de teste:**
+
+```javascript
+var fs = require('fs')
+var t = require('tap')
+var path = require('path')
+
+var rp = require('../')
+
+var lengths = [ 1, 128, 256 ]
+
+var root = __dirname + '/rptest'
+
+function clean () {
+  try { fs.unlinkSync(root + '/a/b') } catch (e) {}
+  try { fs.rmdirSync(root + '/a') } catch (e) {}
+  try { fs.rmdirSync(root) } catch (e) {}
+}
+
+t.test('setup', function (t) {
+  clean()
+
+  fs.mkdirSync(root)
+  fs.mkdirSync(root + '/a')
+  fs.symlinkSync('..', root + '/a/b')
+
+  t.end()
+})
+
+var expect = path.resolve(__dirname + '/rptest/a')
+
+lengths.forEach(function (len) {
+  t.test('symlinks = ' + len, function (t) {
+    var long = root + '/' + Array(len).join('a/b/') + 'a'
+
+    t.plan(2)
+    t.equal(rp.realpathSync(long), expect)
+    rp.realpath(long, function (er, actual) {
+      if (er) {
+        throw er
+      }
+      t.equal(actual, expect)
+    })
+  })
+})
+
+t.test('cleanup', function (t) {
+  clean()
+  t.end()
 })
 
 ```

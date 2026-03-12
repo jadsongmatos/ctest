@@ -17,7 +17,7 @@ const { generateSourceTestsMarkdown } = require('./lib/functions');
  */
 async function analyze(projectPath, options = {}) {
   const {
-    dbPath = path.join(process.cwd(), 'db', 'ctest.db'),
+    dbPath = 'ctest.db',
     sbomPath = 'sbom.cdx.json',
     downloadDependencies: shouldDownloadDeps = false,
     sourceFile: singleSourceFile
@@ -45,7 +45,7 @@ async function analyze(projectPath, options = {}) {
 
   // Import into database
   console.log('Importing into database...');
-  const prisma = await openDatabase(dbPath);
+  const prisma = await openDatabase(dbPath, resolvedProjectPath);
   await importComponents(prisma, components);
   console.log(`Imported ${components.length} components`);
 
@@ -78,7 +78,7 @@ if (require.main === module) {
         downloadDependencies: downloadDependenciesFlag,
         sourceFile: sourceFileFlag ? sourceFileFlag.split('=')[1] : undefined
       });
-      console.log(`\nAnalysis complete. Database: db/ctest.db`);
+      console.log(`\nAnalysis complete. Database: ${resolvedProjectPath}/ctest.db`);
       console.log(`Generated ${result.sourceTestsMarkdown.generated} markdown files`);
       process.exit(0);
     } catch (error) {

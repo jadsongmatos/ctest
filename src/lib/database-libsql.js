@@ -7,16 +7,16 @@ const fs = require('fs');
  * @param {string} dbPath - Path to the database file
  * @returns {Object} - Database client instance
  */
-async function openDatabase(dbPath) {
+async function openDatabase(dbPath, projectPath) {
   let resolvedPath;
 
   if (dbPath) {
-    resolvedPath = path.resolve(process.cwd(), dbPath);
+    resolvedPath = path.resolve(projectPath || process.cwd(), dbPath);
   } else if (process.env.DATABASE_URL) {
     const urlPath = process.env.DATABASE_URL.replace('file:', '');
     resolvedPath = path.resolve(urlPath);
   } else {
-    resolvedPath = path.resolve(process.cwd(), 'db', 'ctest.db');
+    resolvedPath = path.resolve(projectPath || process.cwd(), 'ctest.db');
   }
 
   const dir = path.dirname(resolvedPath);

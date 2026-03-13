@@ -31,6 +31,7 @@ async function analyze(projectPath, options = {}) {
     sourceFile,
     downloadDependencies = false,
     maxDownloads = -1,
+    respectGitIgnore = true,
   } = options;
 
   const resolvedProjectPath = path.resolve(projectPath || process.cwd());
@@ -52,11 +53,11 @@ async function analyze(projectPath, options = {}) {
   let downloadInfo = { downloadRoot: null, results: {} };
 
   if (downloadDependencies) {
-    const componentsToDownload = maxDownloads > 0 
-      ? allComponents.slice(0, maxDownloads) 
+    const componentsToDownload = maxDownloads > 0
+      ? allComponents.slice(0, maxDownloads)
       : allComponents;
-    const countDesc = maxDownloads > 0 
-      ? `up to ${maxDownloads}` 
+    const countDesc = maxDownloads > 0
+      ? `up to ${maxDownloads}`
       : 'all';
     console.log(`Downloading ${countDesc} dependency repositories...`);
     downloadInfo = await downloadRepos(componentsToDownload);
@@ -78,7 +79,7 @@ async function analyze(projectPath, options = {}) {
 
   const sourceFiles = sourceFile
     ? [path.resolve(resolvedProjectPath, sourceFile)]
-    : scanSourceFiles(resolvedProjectPath);
+    : scanSourceFiles(resolvedProjectPath, { respectGitIgnore });
 
   const generated = [];
 
@@ -120,11 +121,20 @@ if (require.main === module) {
   const fileArg = args.find(arg => arg.startsWith('--file='));
   const downloadFlag = args.includes('--download-dependencies');
   const maxDownloadsArg = args.find(arg => arg.startsWith('--max-downloads='));
+  const respectGitIgnoreArg = args.find(arg => arg.startsWith('--respect-gitignore='));
+
+  // Default is true, only false if explicitly set to false
+  let respectGitIgnore = true;
+  if (respectGitIgnoreArg) {
+    const value = respectGitIgnoreArg.split('=')[1].toLowerCase();
+    respectGitIgnore = value !== 'false' && value !== '0' && value !== 'no';
+  }
 
   analyze(projectPath, {
     sourceFile: fileArg ? fileArg.split('=')[1] : undefined,
     downloadDependencies: downloadFlag,
     maxDownloads: maxDownloadsArg ? parseInt(maxDownloadsArg.split('=')[1], 10) : 10,
+    respectGitIgnore,
   })
     .then(result => {
       console.log(`\nDone. Generated ${result.generated.length} markdown files.`);

@@ -1349,7 +1349,7 @@ test('suppressed error on non-zero exit', async () => {
   }
 ```
 
-### /tmp/ctest-repos-nXQIAb/95324de690-parser/packages/babel-plugin-transform-modules-systemjs/test/index.js
+### /tmp/ctest-repos-nXQIAb/95324de690-Pr/packages/babel-plugin-transform-modules-systemjs/test/index.js
 
 #### should requeue helpers
 

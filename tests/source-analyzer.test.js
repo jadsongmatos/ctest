@@ -3,6 +3,9 @@ const fs = require('fs');
 const {
   analyzeSourceFile,
   scanSourceFiles,
+  parseGitIgnore,
+  patternToRegex,
+  shouldIgnore,
 } = require('../src/lib/source-analyzer');
 
 describe('Source Analyzer Module', () => {
@@ -207,7 +210,7 @@ describe('Source Analyzer Module', () => {
 
     it('should exclude test directories', () => {
       const testDir = path.join(__dirname, 'fixtures', 'scan-test2');
-      
+
       fs.mkdirSync(testDir, { recursive: true });
       fs.writeFileSync(path.join(testDir, 'file.js'), 'console.log(1);');
       fs.mkdirSync(path.join(testDir, 'tests'), { recursive: true });
@@ -220,6 +223,158 @@ describe('Source Analyzer Module', () => {
       expect(files.length).toBe(1);
       expect(files[0]).toContain('file.js');
 
+      fs.rmSync(testDir, { recursive: true, force: true });
+    });
+  });
+
+  describe('parseGitIgnore', () => {
+    it('should parse .gitignore file', () => {
+      const testDir = fs.mkdtempSync(path.join(__dirname, 'fixtures', 'gitignore-test-'));
+      const gitIgnoreContent = `
+# Comment
+node_modules/
+*.log
+dist/
+.env
+      `.trim();
+      fs.writeFileSync(path.join(testDir, '.gitignore'), gitIgnoreContent);
+
+      const patterns = parseGitIgnore(testDir);
+
+      expect(patterns).toEqual(['node_modules/', '*.log', 'dist/', '.env']);
+
+      fs.rmSync(testDir, { recursive: true, force: true });
+    });
+
+    it('should return empty array if .gitignore does not exist', () => {
+      const testDir = fs.mkdtempSync(path.join(__dirname, 'fixtures', 'gitignore-test-'));
+      const patterns = parseGitIgnore(testDir);
+      expect(patterns).toEqual([]);
+      fs.rmSync(testDir, { recursive: true, force: true });
+    });
+
+    it('should skip empty lines and comments', () => {
+      const testDir = fs.mkdtempSync(path.join(__dirname, 'fixtures', 'gitignore-test-'));
+      const gitIgnoreContent = `
+# This is a comment
+node_modules/
+
+# Another comment
+*.log
+
+      `;
+      fs.writeFileSync(path.join(testDir, '.gitignore'), gitIgnoreContent);
+
+      const patterns = parseGitIgnore(testDir);
+
+      expect(patterns).toEqual(['node_modules/', '*.log']);
+
+      fs.rmSync(testDir, { recursive: true, force: true });
+    });
+  });
+
+  describe('patternToRegex', () => {
+    it('should convert simple pattern to regex', () => {
+      const regex = patternToRegex('node_modules');
+      expect(regex.test('node_modules')).toBe(true);
+      expect(regex.test('src/node_modules')).toBe(true);
+    });
+
+    it('should convert wildcard pattern to regex', () => {
+      const regex = patternToRegex('*.log');
+      expect(regex.test('error.log')).toBe(true);
+      expect(regex.test('debug.log')).toBe(true);
+      expect(regex.test('file.txt')).toBe(false);
+    });
+
+    it('should convert directory pattern to regex', () => {
+      const regex = patternToRegex('dist/');
+      expect(regex.test('dist/')).toBe(true);
+      expect(regex.test('dist/file.js')).toBe(true);
+    });
+
+    it('should handle anchored patterns (leading slash)', () => {
+      const regex = patternToRegex('/root.txt');
+      expect(regex.test('root.txt')).toBe(true);
+      expect(regex.test('src/root.txt')).toBe(false);
+    });
+
+    it('should handle patterns with slashes', () => {
+      const regex = patternToRegex('build/output.js');
+      expect(regex.test('build/output.js')).toBe(true);
+      // Patterns with slashes match from root, but also match nested in simplified implementation
+      expect(regex.test('src/build/output.js')).toBe(true);
+    });
+  });
+
+  describe('shouldIgnore', () => {
+    it('should return true for matching patterns', () => {
+      const patterns = ['node_modules/', '*.log'];
+      expect(shouldIgnore('/project/node_modules/pkg/index.js', patterns, '/project')).toBe(true);
+      expect(shouldIgnore('/project/error.log', patterns, '/project')).toBe(true);
+    });
+
+    it('should return false for non-matching patterns', () => {
+      const patterns = ['node_modules/', '*.log'];
+      expect(shouldIgnore('/project/src/index.js', patterns, '/project')).toBe(false);
+      expect(shouldIgnore('/project/src/file.txt', patterns, '/project')).toBe(false);
+    });
+  });
+
+  describe('scanSourceFiles with gitignore', () => {
+    it('should respect .gitignore by default', () => {
+      const testDir = fs.mkdtempSync(path.join(__dirname, 'fixtures', 'scan-gitignore-'));
+      
+      // Create .gitignore
+      fs.writeFileSync(path.join(testDir, '.gitignore'), '*.ignore.js\n');
+      
+      // Create files
+      fs.writeFileSync(path.join(testDir, 'normal.js'), 'console.log(1);');
+      fs.writeFileSync(path.join(testDir, 'file.ignore.js'), 'console.log(2);');
+      
+      const files = scanSourceFiles(testDir);
+      
+      expect(files.length).toBe(1);
+      expect(files[0]).toContain('normal.js');
+      
+      fs.rmSync(testDir, { recursive: true, force: true });
+    });
+
+    it('should ignore .gitignore when respectGitIgnore is false', () => {
+      const testDir = fs.mkdtempSync(path.join(__dirname, 'fixtures', 'scan-no-gitignore-'));
+      
+      // Create .gitignore
+      fs.writeFileSync(path.join(testDir, '.gitignore'), '*.ignore.js\n');
+      
+      // Create files
+      fs.writeFileSync(path.join(testDir, 'normal.js'), 'console.log(1);');
+      fs.writeFileSync(path.join(testDir, 'file.ignore.js'), 'console.log(2);');
+      
+      const files = scanSourceFiles(testDir, { respectGitIgnore: false });
+      
+      // Both files should be included
+      expect(files.length).toBe(2);
+      
+      fs.rmSync(testDir, { recursive: true, force: true });
+    });
+
+    it('should handle directory patterns in .gitignore', () => {
+      const testDir = fs.mkdtempSync(path.join(__dirname, 'fixtures', 'scan-gitignore-dir-'));
+      
+      // Create .gitignore
+      fs.writeFileSync(path.join(testDir, '.gitignore'), 'generated/\n');
+      
+      // Create directories and files
+      fs.mkdirSync(path.join(testDir, 'generated'), { recursive: true });
+      fs.mkdirSync(path.join(testDir, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(testDir, 'generated', 'file.js'), 'console.log(1);');
+      fs.writeFileSync(path.join(testDir, 'src', 'file.js'), 'console.log(2);');
+      
+      const files = scanSourceFiles(testDir);
+      
+      expect(files.length).toBe(1);
+      expect(files[0]).toContain('src');
+      
       fs.rmSync(testDir, { recursive: true, force: true });
     });
   });

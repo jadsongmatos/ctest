@@ -58,6 +58,7 @@ node src/index.js /caminho/para/projeto
 | `--download-dependencies` | Baixar código fonte das dependências com `repo_url` |
 | `--max-downloads=<n>` | Número máximo de dependências para baixar (padrão: -1 = sem limite) |
 | `--file=<arquivo>` | Gerar markdown para um único arquivo fonte |
+| `--respect-gitignore=<true|false>` | Respeitar regras do .gitignore (padrão: true) |
 
 ### Gerar arquivos markdown para todo o projeto
 
@@ -166,6 +167,7 @@ async function main() {
     sourceFile: 'index.js',         // Opcional: analisar único arquivo
     downloadDependencies: true,     // Baixar dependências (padrão: false)
     maxDownloads: -1,               // Máximo de dependências (padrão: -1 = sem limite)
+    respectGitIgnore: true,         // Respeitar .gitignore (padrão: true)
   });
 
   console.log(result);
@@ -201,7 +203,10 @@ async function main() {
 | Função | Descrição |
 |--------|-----------|
 | `analyzeSourceFile(filePath)` | Analisa arquivo fonte identificando uso de libs externas |
-| `scanSourceFiles(dir)` | Varre diretório por arquivos JS/TS |
+| `scanSourceFiles(dir, options)` | Varre diretório por arquivos JS/TS |
+| `parseGitIgnore(dir)` | Lê e parseia arquivo .gitignore |
+| `patternToRegex(pattern)` | Converte padrão gitignore em regex |
+| `shouldIgnore(filePath, patterns, baseDir)` | Verifica se arquivo deve ser ignorado |
 
 ### Test Extractor (`src/lib/test-extractor.js`)
 

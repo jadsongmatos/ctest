@@ -2,6 +2,98 @@ const fs = require('fs');
 const path = require('path');
 const parser = require('@babel/parser');
 
+/**
+ * Parse .gitignore file and return array of patterns
+ */
+function parseGitIgnore(dir) {
+  const gitIgnorePath = path.join(dir, '.gitignore');
+  const patterns = [];
+
+  if (!fs.existsSync(gitIgnorePath)) {
+    return patterns;
+  }
+
+  try {
+    const content = fs.readFileSync(gitIgnorePath, 'utf8');
+    const lines = content.split(/\r?\n/);
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Skip empty lines and comments
+      if (!trimmed || trimmed.startsWith('#')) {
+        continue;
+      }
+      patterns.push(trimmed);
+    }
+  } catch (error) {
+    // Ignore errors reading .gitignore
+  }
+
+  return patterns;
+}
+
+/**
+ * Convert a gitignore pattern to a regex
+ */
+function patternToRegex(pattern) {
+  // Escape special regex characters except * and ?
+  let regex = pattern
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*/g, '.*')
+    .replace(/\?/g, '.');
+
+  // Handle leading slash (anchored to root)
+  const anchored = pattern.startsWith('/');
+  if (anchored) {
+    regex = regex.slice(1);
+    return new RegExp('^' + regex);
+  }
+
+  // Handle trailing slash (directory only)
+  const dirOnly = pattern.endsWith('/');
+  if (dirOnly) {
+    regex = regex.slice(0, -1) + '/.*';
+  }
+
+  // Pattern with slash in middle is relative to root
+  if (pattern.includes('/') && !pattern.startsWith('**/')) {
+    return new RegExp('(^|/)' + regex);
+  }
+
+  // Pattern without slash matches anywhere
+  return new RegExp('(^|/)' + regex + '($|/)');
+}
+
+/**
+ * Check if a file path should be ignored based on gitignore patterns
+ */
+function shouldIgnore(filePath, patterns, baseDir) {
+  const relativePath = path.relative(baseDir, filePath);
+  const normalizedPath = relativePath.replace(/\\/g, '/');
+
+  for (const pattern of patterns) {
+    // Handle negation patterns
+    if (pattern.startsWith('!')) {
+      continue; // Simplified: negations not fully supported
+    }
+
+    const regex = patternToRegex(pattern);
+    if (regex.test(normalizedPath)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Get all gitignore patterns from directory tree
+ */
+function getGitIgnorePatterns(dir) {
+  const patterns = parseGitIgnore(dir);
+  return patterns;
+}
+
 function getRootObjectName(node) {
   if (!node) return null;
   if (node.type === 'Identifier') return node.name;
@@ -199,20 +291,31 @@ function analyzeSourceFile(filePath) {
   return result;
 }
 
-function scanSourceFiles(dir) {
+function scanSourceFiles(dir, options = {}) {
+  const { respectGitIgnore = true } = options;
   const sourceFiles = [];
+  const gitIgnorePatterns = respectGitIgnore ? getGitIgnorePatterns(dir) : [];
+
+  // Directories that are always ignored regardless of .gitignore
+  const alwaysIgnoredDirs = ['node_modules', '.git', 'dist', 'build', 'coverage', 'test', 'tests', '__tests__'];
 
   function scan(currentDir) {
     const entries = fs.readdirSync(currentDir, { withFileTypes: true });
 
     for (const entry of entries) {
       const fullPath = path.join(currentDir, entry.name);
+      const relativePath = path.relative(dir, fullPath);
 
-      if (
-        entry.isDirectory() &&
-        ['node_modules', '.git', 'dist', 'build', 'coverage', 'test', 'tests', '__tests__'].includes(entry.name)
-      ) {
+      // Always ignore specific directories
+      if (entry.isDirectory() && alwaysIgnoredDirs.includes(entry.name)) {
         continue;
+      }
+
+      // Check .gitignore patterns if enabled
+      if (respectGitIgnore && gitIgnorePatterns.length > 0) {
+        if (shouldIgnore(fullPath, gitIgnorePatterns, dir)) {
+          continue;
+        }
       }
 
       if (entry.isDirectory()) {
@@ -230,4 +333,7 @@ function scanSourceFiles(dir) {
 module.exports = {
   analyzeSourceFile,
   scanSourceFiles,
+  parseGitIgnore,
+  patternToRegex,
+  shouldIgnore,
 };

@@ -110,7 +110,7 @@ describe('Source Analyzer Module', () => {
 
     it('should return empty object for file without imports', () => {
       const testFile = path.join(__dirname, 'fixtures', 'test-no-imports.js');
-      
+
       const content = `
         function add(a, b) {
           return a + b;
@@ -121,6 +121,65 @@ describe('Source Analyzer Module', () => {
       fs.writeFileSync(testFile, content);
 
       const result = analyzeSourceFile(testFile);
+      expect(result).toEqual({});
+
+      fs.unlinkSync(testFile);
+    });
+
+    it('should return empty object for files with parse errors', () => {
+      const testFile = path.join(__dirname, 'fixtures', 'test-parse-error.js');
+
+      // Code with duplicate identifier declaration (like the reported error)
+      const content = `
+        const rqFetcher = require('fetch');
+        const rqFetcher = require('fetch2');
+      `;
+
+      fs.mkdirSync(path.dirname(testFile), { recursive: true });
+      fs.writeFileSync(testFile, content);
+
+      const result = analyzeSourceFile(testFile);
+      
+      // Should return empty object instead of throwing
+      expect(result).toEqual({});
+
+      fs.unlinkSync(testFile);
+    });
+
+    it('should handle TypeScript with type errors gracefully', () => {
+      const testFile = path.join(__dirname, 'fixtures', 'test-ts-error.ts');
+
+      const content = `
+        const x: number = "string";
+        const rqFetcher = fetch();
+        const rqFetcher = fetch2();
+      `;
+
+      fs.mkdirSync(path.dirname(testFile), { recursive: true });
+      fs.writeFileSync(testFile, content);
+
+      const result = analyzeSourceFile(testFile);
+      
+      // Should handle gracefully even with type issues
+      expect(result).toBeDefined();
+
+      fs.unlinkSync(testFile);
+    });
+
+    it('should handle files with syntax errors gracefully', () => {
+      const testFile = path.join(__dirname, 'fixtures', 'test-syntax-error.js');
+
+      // Incomplete syntax
+      const content = `
+        function incomplete(
+      `;
+
+      fs.mkdirSync(path.dirname(testFile), { recursive: true });
+      fs.writeFileSync(testFile, content);
+
+      const result = analyzeSourceFile(testFile);
+      
+      // Should return empty object for unparseable files
       expect(result).toEqual({});
 
       fs.unlinkSync(testFile);

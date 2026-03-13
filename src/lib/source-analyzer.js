@@ -55,10 +55,36 @@ function analyzeSourceFile(filePath) {
   if (!fs.existsSync(filePath)) return {};
 
   const content = fs.readFileSync(filePath, 'utf8');
-  const ast = parser.parse(content, {
-    sourceType: 'unambiguous',
-    plugins: ['jsx', 'typescript', 'classProperties', 'optionalChaining'],
-  });
+  
+  let ast;
+  try {
+    ast = parser.parse(content, {
+      sourceType: 'unambiguous',
+      plugins: [
+        'jsx',
+        'typescript',
+        'classProperties',
+        'optionalChaining',
+        'nullishCoalescingOperator',
+        'asyncGenerators',
+        'bigInt',
+        'importMeta',
+        'logicalAssignment',
+        'numericSeparator',
+        'optionalCatchBinding',
+        'throwExpressions',
+      ],
+      allowAwaitOutsideFunction: true,
+      allowImportExportEverywhere: true,
+      allowReturnOutsideFunction: true,
+      allowSuperOutsideMethod: true,
+      allowUndeclaredExports: true,
+    });
+  } catch (error) {
+    // If parsing fails, return empty result instead of crashing
+    console.warn(`Warning: Could not parse ${filePath}: ${error.message}`);
+    return {};
+  }
 
   const imports = {};
   const classInstances = {};

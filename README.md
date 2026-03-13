@@ -42,7 +42,7 @@ Analise um projeto npm e gere arquivos markdown com testes externos:
 
 ```bash
 # Com download de dependências (recomendado para resultados completos)
-node src/index.js /caminho/para/projeto --download-dependencies --max-downloads=10
+node src/index.js /caminho/para/projeto --download-dependencies
 
 # Sem download (usa apenas código já disponível)
 node src/index.js /caminho/para/projeto
@@ -56,7 +56,7 @@ node src/index.js /caminho/para/projeto
 |-------|-----------|
 | `<project-path>` | Caminho para o projeto npm a ser analisado (obrigatório) |
 | `--download-dependencies` | Baixar código fonte das dependências com `repo_url` |
-| `--max-downloads=<n>` | Número máximo de dependências para baixar (padrão: 10) |
+| `--max-downloads=<n>` | Número máximo de dependências para baixar (padrão: -1 = sem limite) |
 | `--file=<arquivo>` | Gerar markdown para um único arquivo fonte |
 
 ### Gerar arquivos markdown para todo o projeto
@@ -68,23 +68,23 @@ node src/index.js <projeto> --download-dependencies --max-downloads=10
 ### Gerar markdown para um único arquivo
 
 ```bash
-node src/index.js <projeto> --download-dependencies --max-downloads=10 --file=index.js
+node src/index.js <projeto> --download-dependencies --file=index.js
 ```
 
 ### Exemplos
 
 ```bash
-# Analisar diretório atual
-node src/index.js . --download-dependencies --max-downloads=5
+# Analisar projeto (sem download)
+node src/index.js /path/to/npm/project
 
-# Analisar um projeto específico
+# Analisar projeto (baixando todas as dependências com repo_url)
 node src/index.js /path/to/npm/project --download-dependencies
+
+# Analisar com limite de downloads (útil para projetos grandes)
+node src/index.js /path/to/npm/project --download-dependencies --max-downloads=5
 
 # Gerar markdown para um único arquivo
 node src/index.js /path/to/npm/project --download-dependencies --file=src/index.js
-
-# Analisar o próprio ctest
-node src/index.js /workspaces/ctest --download-dependencies --max-downloads=3
 ```
 
 ## Como Funciona
@@ -165,7 +165,7 @@ async function main() {
     sbomPath: 'sbom.cdx.json',      // Caminho do SBOM (padrão: sbom.cdx.json)
     sourceFile: 'index.js',         // Opcional: analisar único arquivo
     downloadDependencies: true,     // Baixar dependências (padrão: false)
-    maxDownloads: 10,               // Máximo de dependências para baixar
+    maxDownloads: -1,               // Máximo de dependências (padrão: -1 = sem limite)
   });
 
   console.log(result);
@@ -238,37 +238,6 @@ async function main() {
 ```bash
 npm test
 ```
-
-## Estrutura do Projeto
-
-```
-ctest/
-├── src/
-│   ├── index.js                      # Ponto de entrada CLI
-│   └── lib/
-│       ├── horsebox.js               # Integração com Horsebox
-│       ├── markdown-generator.js     # Geração de markdown
-│       ├── repo-downloader.js        # Download de repositórios Git
-│       ├── sbom.js                   # Geração/parse de SBOM
-│       ├── source-analyzer.js        # Análise de código fonte (AST)
-│       ├── test-extractor.js         # Extração de blocos de teste
-│       └── utils.js                  # Funções utilitárias
-├── tests/                            # Arquivos de teste
-├── ref/                              # Projetos de teste
-└── scripts/                          # Scripts utilitários
-```
-
-## Comparação: v1.x vs v2.0
-
-| Recurso | v1.x (Prisma/SQLite) | v2.0 (Horsebox) |
-|---------|---------------------|-----------------|
-| Armazenamento | SQLite + Prisma | Índices Horsebox (temporários) |
-| Busca de testes | Query SQL no banco | Busca full-text no código |
-| Precisão | Baseada em hits de funções | Baseada em termos + contexto |
-| Performance | Mais lento (setup de DB) | Mais rápido (índices otimizados) |
-| Dependências | Prisma, libsql, SQLite | Horsebox (`hb`) |
-| Schema | Necessário criar/manter | Automático |
-| Persistência | Banco permanente | Índices temporários |
 
 ## License
 

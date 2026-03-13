@@ -30,7 +30,7 @@ async function analyze(projectPath, options = {}) {
     sbomPath = 'sbom.cdx.json',
     sourceFile,
     downloadDependencies = false,
-    maxDownloads = 10,
+    maxDownloads = -1,
   } = options;
 
   const resolvedProjectPath = path.resolve(projectPath || process.cwd());
@@ -52,8 +52,13 @@ async function analyze(projectPath, options = {}) {
   let downloadInfo = { downloadRoot: null, results: {} };
 
   if (downloadDependencies) {
-    const componentsToDownload = allComponents.slice(0, maxDownloads);
-    console.log(`Downloading up to ${maxDownloads} dependency repositories...`);
+    const componentsToDownload = maxDownloads > 0 
+      ? allComponents.slice(0, maxDownloads) 
+      : allComponents;
+    const countDesc = maxDownloads > 0 
+      ? `up to ${maxDownloads}` 
+      : 'all';
+    console.log(`Downloading ${countDesc} dependency repositories...`);
     downloadInfo = await downloadRepos(componentsToDownload);
   }
 

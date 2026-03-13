@@ -1,22 +1,35 @@
 # Ctest
 
-Ctest é uma ferramenta de linha de comando que analisa projetos npm e gera arquivos markdown com testes das dependências externas para cada arquivo de código-fonte.
+Ctest é uma ferramenta de linha de comando que analisa projetos npm e gera arquivos markdown com testes das dependências externas para cada arquivo de código-fonte, usando **Horsebox** como mecanismo de busca de código.
 
 ## Recursos
 
 * Gera um SBOM CycloneDX para projetos npm
-* Importa o SBOM para um banco SQLite usando o ORM Prisma com adapter libsql
-* **Cria/atualiza automaticamente o schema do banco de dados** quando necessário
-* Baixa código fonte de dependências usando repo_url
-* **Suporte a sparse checkout para monorepos grandes** (ex: Prisma)
-* **Download seletivo** de apenas dependências usadas no arquivo analisado
-* Extrai arquivos de teste das dependências externas
+* Baixa código fonte de dependências usando `repo_url`
+* **Indexa todo o código do projeto e das dependências com Horsebox**
+* **Suporte a índices filecontent e fileline** para buscas flexíveis
 * Analisa o código-fonte do projeto para identificar funções de libs externas usadas
 * **Detecta cadeias de member expressions** (ex: `prisma.component.upsert`)
 * **Rastreia instâncias de classes importadas** (ex: `new PrismaClient()`)
-* Gera um arquivo `.md` para cada arquivo de código-fonte com os testes das funções usadas
+* **Busca no índice Horsebox** por ocorrências das funções nas dependências
+* **Filtra automaticamente para arquivos de teste**
+* **Extrai blocos `test()` / `it()` relevantes**
+* Gera um arquivo `.md` para cada arquivo de código-fonte com os testes encontrados
+* **Sem banco de dados** - índices temporários criados sob demanda
 
-## Dependências
+## Dependências Externas
+
+O Ctest requer o **Horsebox** (`hb`) instalado no sistema:
+
+```bash
+# Instalar uv (gerenciador de pacotes Python)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Instalar Horsebox
+uv tool install git+https://github.com/michelcaradec/horsebox
+```
+
+## Dependências npm
 
 O Ctest depende de uma ferramenta dedicada para gerar SBOM CycloneDX para projetos npm:
 
@@ -29,7 +42,14 @@ npx @cyclonedx/cyclonedx-npm --output-format JSON --output-file sbom.cdx.json
 ### Gerar arquivos markdown com testes externos para todo o projeto
 
 ```bash
+# Sem download de dependências
+node src/index.js /caminho/para/projeto/npm
+
+# Com download de dependências (todas)
 node src/index.js /caminho/para/projeto/npm --download-dependencies
+
+# Com download limitado (útil para projetos grandes)
+node src/index.js /caminho/para/projeto/npm --download-dependencies --max-downloads=10
 ```
 
 ### Gerar arquivo markdown com testes externos para um único arquivo
@@ -40,56 +60,51 @@ node src/index.js /caminho/para/projeto/npm --download-dependencies --file=index
 
 Este comando gera um arquivo `.md` para o arquivo de código-fonte especificado (ex: `index.js.md`), contendo:
 - Lista de bibliotecas externas usadas no arquivo
-- Funções de cada biblioteca que são utilizadas
-- Testes externos disponíveis para essas funções
-- Conteúdo completo dos arquivos de teste
+- Consultas usadas no Horsebox para buscar testes
+- Arquivos de teste encontrados
+- Blocos `test()` / `it()` extraídos de cada arquivo de teste
 
-**Nota:** O banco de dados é criado automaticamente na primeira execução. Para repositórios grandes (ex: Prisma), use `--download-dependencies` para baixar os testes externos.
+**Nota:** Os índices Horsebox são criados em diretórios temporários e removidos após a execução. Use `--download-dependencies` para baixar e indexar os testes externos das dependências.
 
-## Esquema do banco de dados
+## Opções de Linha de Comando
 
-O banco SQLite contém as seguintes tabelas:
+| Opção | Descrição | Padrão |
+|-------|-----------|--------|
+| `<project-path>` | Caminho para o projeto npm | `process.cwd()` |
+| `--file=<arquivo>` | Analisar apenas um arquivo | Todos os arquivos |
+| `--download-dependencies` | Baixar dependências com repo_url | `false` |
+| `--max-downloads=<n>` | Máximo de dependências para baixar | `-1` (sem limite) |
 
-**Tabelas principais:**
-* `components` - dependências npm (id, name, version, repo_url, created_at)
+## Estrutura do Projeto
 
-**Tabelas de análise de código:**
-* `source_files` - arquivos de código-fonte analisados (id, path)
-* `functions` - funções encontradas nos arquivos de código (id, sourceFileId, name, startLine, startCol, endLine, endCol)
-* `test_files` - arquivos de teste (id, path)
-* `function_hits` - relação entre testes e funções executadas (testFileId, functionId, hits)
-
-**Tabelas de testes externos:**
-* `external_components` - dependências externas baixadas (id, name, version, repo_url, downloadPath, createdAt)
-* `external_test_files` - arquivos de teste das dependências externas (id, externalComponentId, path)
-
-## Estrutura do projeto
-
-* `src/index.js` - ponto de entrada principal do CLI
-* `src/lib/database-libsql.js` - operações de banco de dados usando Prisma com adapter libsql (com criação automática do schema)
-* `src/lib/sbom.js` - geração e parsing do SBOM
-* `src/lib/functions.js` - geração de markdown para arquivos de código-fonte (com download seletivo)
-* `src/lib/repo-downloader.js` - download de repositórios git (com suporte a blobless clone para monorepos)
-* `src/lib/external-test-extractor.js` - extração de testes de dependências externas
-* `src/lib/source-parser.js` - parser de código JavaScript/TypeScript
-* `src/lib/source-analyzer.js` - análise de imports e uso de bibliotecas externas (detecta member expressions em cadeia)
-* `prisma/schema.prisma` - definição do schema do Prisma
-* `prisma.config.ts` - configuração do Prisma
-* `tests/` - arquivos de teste
-  * `database.test.js` - testes do módulo de banco de dados
-  * `duplicate.test.js` - testes de idempotência (verifica que dados não são duplicados)
-  * `index.test.js` - testes do CLI principal
-  * `sbom.test.js` - testes de geração de SBOM
-* `ref/` - projetos de teste de referência
+```
+ctest/
+├── src/
+│   ├── index.js                      # ponto de entrada principal do CLI
+│   └── lib/
+│       ├── horsebox.js               # integração com Horsebox (build/search index)
+│       ├── markdown-generator.js     # geração de arquivos markdown
+│       ├── repo-downloader.js        # download de repositórios git
+│       ├── sbom.js                   # geração e parsing do SBOM
+│       ├── source-analyzer.js        # análise de imports e uso de libs (AST)
+│       ├── test-extractor.js         # extração de blocos test()/it()
+│       └── utils.js                  # funções utilitárias
+├── tests/
+│   ├── index.test.js                 # testes do CLI principal
+│   ├── horsebox.test.js              # testes do módulo Horsebox
+│   ├── source-analyzer.test.js       # testes de análise de código
+│   ├── test-extractor.test.js        # testes de extração de testes
+│   └── sbom.test.js                  # testes de geração de SBOM
+├── ref/                              # projetos de teste de referência
+└── scripts/                          # scripts utilitários
+```
 
 ## Desenvolvimento
 
-### Gerar o Prisma Client
-
-Antes de rodar o projeto, gere o Prisma Client:
+### Instalar dependências
 
 ```bash
-npx prisma generate
+npm install
 ```
 
 ### Rodar testes
@@ -100,36 +115,54 @@ Antes de implementar novos recursos, execute os testes:
 npm test
 ```
 
-### Testes de idempotência
-
-O projeto inclui testes que verificam que a execução múltipla não duplica dados:
-
-```bash
-npm test -- --testPathPatterns=duplicate.test.js
-```
+### Estrutura dos Testes
 
 Os testes verificam:
-- A função `importComponents` usa `upsert` para evitar duplicatas
-- Componentes são únicos pela combinação `name@version`
-- Múltiplas execuções mantêm dados consistentes
+- Geração e parsing de SBOM
+- Análise de código fonte (AST)
+- Extração de blocos de teste
+- Integração com Horsebox
+- Fluxo completo do CLI
 
-## Regras de criação de arquivos
+## Fluxo de Processamento
+
+1. **Gerar SBOM**: Usa `@cyclonedx/cyclonedx-npm` para criar SBOM CycloneDX
+2. **Extrair componentes**: Filtra componentes com `repo_url`
+3. **Baixar dependências** (opcional): Clona repositórios via Git
+4. **Indexar com Horsebox**:
+   - Projeto: índice `filecontent`
+   - Dependências: índices `filecontent` + `fileline`
+5. **Analisar arquivos fonte**: Parseia com `@babel/parser` para identificar:
+   - Imports ES6 e CommonJS
+   - Member expressions em cadeia
+   - Instâncias de classes
+6. **Buscar testes**: Para cada lib, query Horsebox com termos relevantes
+7. **Extrair blocos**: Abre arquivos de teste e extrai `test()` / `it()`
+8. **Gerar markdown**: Escreve arquivo `.md` com resultados
+
+## Regras de Criação de Arquivos
 
 Não crie arquivos diretamente em **`/workspaces/ctest`**; crie-os **somente em subdiretórios** dentro desse diretório.
 
-## Melhorias Recentes
+## Melhorias Recentes (v2.0)
 
-### Detecção de funções em cadeias de member expressions
-O source-analyzer agora detecta corretamente funções usadas em cadeias como `prisma.component.upsert()`, extraindo todas as propriedades da cadeia.
+### Migração para Horsebox
+- Removido Prisma, SQLite, libsql
+- Índices temporários em vez de banco permanente
+- Busca full-text mais rápida e flexível
 
-### Rastreamento de instâncias de classes
+### Detecção de Funções em Cadeia
+O source-analyzer detecta corretamente funções usadas em cadeias como `prisma.component.upsert()`, extraindo todas as propriedades da cadeia.
+
+### Rastreamento de Instâncias de Classes
 O analyzer rastreia instâncias de classes importadas (ex: `const prisma = new PrismaClient()`) e associa chamadas de método à biblioteca original.
 
-### Criação automática do schema
-O banco de dados é criado e configurado automaticamente na primeira execução, sem necessidade de comandos manuais.
-
-### Download otimizado para monorepos
-Para repositórios grandes como Prisma, o downloader usa:
-- `--filter=blob:none` para clone inicial rápido
-- Checkout seletivo de paths específicos
+### Download Otimizado
+- Clone shallow (`--depth 1`) para repositórios grandes
 - Timeout configurável por operação
+- Limite de downloads com `--max-downloads`
+
+### Extração de Testes Contextual
+- Busca baseada em múltiplos termos (cadeia completa + partes)
+- Filtragem por arquivos de teste
+- Extração de blocos completos com braces balanceados

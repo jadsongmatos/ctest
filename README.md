@@ -2,6 +2,16 @@
 
 Ctest é uma ferramenta de linha de comando que analisa projetos npm e gera arquivos markdown com testes das dependências externas para cada arquivo de código-fonte, usando **Horsebox** como mecanismo de busca de código.
 
+[![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=jadsongmatos_ctest)](https://sonarcloud.io/summary/new_code?id=jadsongmatos_ctest)
+
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=jadsongmatos_ctest&metric=coverage)](https://sonarcloud.io/summary/new_code?id=jadsongmatos_ctest)
+
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=jadsongmatos_ctest&metric=bugs)](https://sonarcloud.io/summary/new_code?id=jadsongmatos_ctest)
+
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=jadsongmatos_ctest&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=jadsongmatos_ctest)
+
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=jadsongmatos_ctest&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=jadsongmatos_ctest)
+
 ## Visão Geral
 
 O Ctest analisa seu projeto npm para identificar quais funções de bibliotecas externas são usadas em cada arquivo fonte, então gera arquivos markdown contendo os casos de teste relevantes dessas bibliotecas externas.
@@ -59,6 +69,8 @@ node src/index.js /caminho/para/projeto
 | `--max-downloads=<n>` | Número máximo de dependências para baixar (padrão: -1 = sem limite) |
 | `--file=<arquivo>` | Gerar markdown para um único arquivo fonte |
 | `--respect-gitignore=<true|false>` | Respeitar regras do .gitignore (padrão: true) |
+| `--download-dir=<caminho>` | Diretório para baixar dependências (padrão: temp) |
+| `--keep-downloads` | Não remover dependências baixadas após análise |
 
 ### Gerar arquivos markdown para todo o projeto
 
@@ -168,12 +180,15 @@ async function main() {
     downloadDependencies: true,     // Baixar dependências (padrão: false)
     maxDownloads: -1,               // Máximo de dependências (padrão: -1 = sem limite)
     respectGitIgnore: true,         // Respeitar .gitignore (padrão: true)
+    downloadDir: '/tmp/deps',       // Diretório para baixar dependências (padrão: temp)
+    keepDownloads: false,           // Manter dependências após análise (padrão: false)
   });
 
   console.log(result);
   // {
   //   sbomPath: '/caminho/para/sbom.cdx.json',
-  //   generated: ['src/index.js.md', 'src/lib/utils.js.md', ...]
+  //   generated: ['src/index.js.md', 'src/lib/utils.js.md', ...],
+  //   downloadRoot: '/tmp/ctest-repos-xxx'
   // }
 }
 ```
@@ -226,7 +241,7 @@ async function main() {
 | Função | Descrição |
 |--------|-----------|
 | `downloadRepos(components, options)` | Baixa repositórios das dependências |
-| `cleanupRepos(downloadRoot)` | Remove repositórios baixados |
+| `cleanupRepos(downloadRoot, keepDownload)` | Remove repositórios baixados (ou mantém se `keepDownload=true`) |
 | `parseRepoUrl(repoUrl, version)` | Parseia URL do repositório |
 
 ### Utils (`src/lib/utils.js`)

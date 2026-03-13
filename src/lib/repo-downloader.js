@@ -82,18 +82,22 @@ async function cloneRepo(gitUrl, ref, destDir) {
 async function downloadRepos(components, options = {}) {
   const results = {};
   const downloadRoot = options.baseDir || fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-repos-'));
+  let successCount = 0;
+  let failCount = 0;
 
   for (const component of components) {
     const { name, version, repo_url } = component;
 
     if (!repo_url) {
       results[name] = { success: false, path: null, reason: 'no_repo_url' };
+      failCount++;
       continue;
     }
 
     const parsed = parseRepoUrl(repo_url, version);
     if (!parsed) {
       results[name] = { success: false, path: null, reason: 'invalid_repo_url' };
+      failCount++;
       continue;
     }
 
@@ -101,6 +105,11 @@ async function downloadRepos(components, options = {}) {
     const destDir = path.join(downloadRoot, `${hash(name)}-${name.replace(/[\\/]/g, '_')}`);
 
     const success = await cloneRepo(gitUrl, ref, destDir);
+    if (success) {
+      successCount++;
+    } else {
+      failCount++;
+    }
     results[name] = {
       success,
       path: success ? destDir : null,
@@ -109,10 +118,14 @@ async function downloadRepos(components, options = {}) {
     };
   }
 
+  console.log(`Downloaded ${successCount}/${components.length} dependencies successfully (${failCount} failed)`);
   return { results, downloadRoot };
 }
 
-function cleanupRepos(downloadRoot) {
+function cleanupRepos(downloadRoot, keepDownload = false) {
+  if (keepDownload) {
+    return;
+  }
   if (downloadRoot && fs.existsSync(downloadRoot)) {
     fs.rmSync(downloadRoot, { recursive: true, force: true });
   }

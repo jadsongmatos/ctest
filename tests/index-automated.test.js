@@ -321,6 +321,43 @@ describe('Repo Downloader Integration', () => {
       cleanupRepos(result.downloadRoot);
     }
   });
+
+  it('should use custom download directory when provided', async () => {
+    const customDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-custom-deps-'));
+    const components = [
+      {
+        name: 'lodash',
+        version: '4.17.21',
+        repo_url: 'https://github.com/lodash/lodash'
+      }
+    ];
+
+    const result = await downloadRepos(components, { baseDir: customDir });
+    expect(result.downloadRoot).toBe(customDir);
+    expect(fs.existsSync(customDir)).toBe(true);
+
+    cleanupRepos(result.downloadRoot);
+  }, 60000);
+
+  it('should not cleanup when keepDownload is true', () => {
+    const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-keep-'));
+    const testFile = path.join(testDir, 'test.txt');
+    fs.writeFileSync(testFile, 'test');
+
+    cleanupRepos(testDir, true);
+    expect(fs.existsSync(testDir)).toBe(true);
+
+    fs.rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('should cleanup when keepDownload is false', () => {
+    const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-nokeep-'));
+    const testFile = path.join(testDir, 'test.txt');
+    fs.writeFileSync(testFile, 'test');
+
+    cleanupRepos(testDir, false);
+    expect(fs.existsSync(testDir)).toBe(false);
+  });
 });
 
 describe('Source Analyzer Integration', () => {

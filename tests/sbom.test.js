@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { generateSBOM, readSBOM, extractComponents } = require('../src/lib/sbom');
+const { generateSBOM, readSBOM, extractComponents, createSBOMFromPackageLock } = require('../src/lib/sbom');
 
 describe('SBOM Module', () => {
   const testProjectPath = path.join(__dirname, 'fixtures', 'test-project');
@@ -8,14 +8,12 @@ describe('SBOM Module', () => {
   const outputSBOMPath = path.join(testProjectPath, 'sbom.cdx.json');
 
   beforeEach(() => {
-    // Clean up any existing SBOM file
     if (fs.existsSync(outputSBOMPath)) {
       fs.unlinkSync(outputSBOMPath);
     }
   });
 
   afterEach(() => {
-    // Clean up generated SBOM after tests
     if (fs.existsSync(outputSBOMPath)) {
       fs.unlinkSync(outputSBOMPath);
     }
@@ -24,7 +22,7 @@ describe('SBOM Module', () => {
   describe('readSBOM', () => {
     it('should read and parse a valid SBOM file', () => {
       const sbom = readSBOM(testSBOMPath);
-      
+
       expect(sbom).toBeDefined();
       expect(sbom.bomFormat).toBe('CycloneDX');
       expect(sbom.components).toBeDefined();
@@ -38,9 +36,9 @@ describe('SBOM Module', () => {
     it('should throw error for invalid JSON file', () => {
       const invalidPath = path.join(__dirname, 'fixtures', 'invalid.json');
       fs.writeFileSync(invalidPath, 'not valid json');
-      
+
       expect(() => readSBOM(invalidPath)).toThrow();
-      
+
       fs.unlinkSync(invalidPath);
     });
   });
@@ -49,10 +47,10 @@ describe('SBOM Module', () => {
     it('should extract components with name, version, and repo_url', () => {
       const sbom = readSBOM(testSBOMPath);
       const components = extractComponents(sbom);
-      
+
       expect(components).toBeDefined();
       expect(Array.isArray(components)).toBe(true);
-      
+
       if (components.length > 0) {
         const first = components[0];
         expect(first).toHaveProperty('name');
@@ -64,7 +62,7 @@ describe('SBOM Module', () => {
     it('should return empty array for SBOM without components', () => {
       const emptySBOM = { bomFormat: 'CycloneDX', specVersion: '1.4' };
       const components = extractComponents(emptySBOM);
-      
+
       expect(components).toEqual([]);
     });
 
@@ -76,9 +74,9 @@ describe('SBOM Module', () => {
           { name: 'test-package', version: '1.0.0' }
         ]
       };
-      
+
       const components = extractComponents(sbom);
-      
+
       expect(components).toHaveLength(1);
       expect(components[0].name).toBe('test-package');
       expect(components[0].version).toBe('1.0.0');
@@ -100,9 +98,9 @@ describe('SBOM Module', () => {
           }
         ]
       };
-      
+
       const components = extractComponents(sbom);
-      
+
       expect(components[0].repo_url).toBe('https://github.com/test/repo');
     });
   });
@@ -117,7 +115,6 @@ describe('SBOM Module', () => {
         }
       };
 
-      const { createSBOMFromPackageLock } = require('../src/lib/sbom');
       const sbom = await createSBOMFromPackageLock(packageLock, false);
 
       expect(sbom.bomFormat).toBe('CycloneDX');
@@ -130,14 +127,12 @@ describe('SBOM Module', () => {
   describe('generateSBOM', () => {
     it('should generate SBOM for a valid npm project', () => {
       if (!fs.existsSync(testProjectPath)) {
-        // Skip if test project doesn't exist
         console.log('Skipping generateSBOM test - test project not found');
         return;
       }
 
       if (!fs.existsSync(path.join(testProjectPath, 'node_modules'))) {
-        // Skip if dependencies are not installed
-        console.log('Skipping generateSBOM test - node_modules not found (run npm install in test-project)');
+        console.log('Skipping generateSBOM test - node_modules not found');
         return;
       }
 
@@ -146,9 +141,8 @@ describe('SBOM Module', () => {
       expect(result).toBeDefined();
       expect(fs.existsSync(result)).toBe(true);
 
-      // Verify the generated SBOM is valid
       const sbom = readSBOM(result);
       expect(sbom.bomFormat).toBe('CycloneDX');
-    }, 60000); // Longer timeout for SBOM generation
+    }, 60000);
   });
 });

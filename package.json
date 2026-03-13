@@ -1,45 +1,30 @@
 {
   "name": "ctest",
-  "version": "1.0.0",
-  "description": "Ctest is a command-line tool that analyzes npm projects.",
+  "version": "2.0.0",
+  "description": "Gera arquivos .md com testes externos relevantes usando SBOM + Horsebox.",
   "main": "src/index.js",
   "bin": {
     "ctest": "./src/index.js"
   },
   "scripts": {
-    "test": "jest --coverage",
     "ctest": "node src/index.js",
-    "jest-fn-to-sqlite": "node scripts/jest-fn-to-sqlite.mjs"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jadsongmatos/ctest.git"
+    "test": "jest --coverage"
   },
   "keywords": [
     "sbom",
     "cyclonedx",
-    "npm",
-    "security",
+    "horsebox",
+    "code-search",
     "dependency-analysis"
   ],
-  "author": "",
   "license": "ISC",
   "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/jadsongmatos/ctest/issues"
-  },
-  "homepage": "https://github.com/jadsongmatos/ctest#readme",
   "dependencies": {
-    "@cyclonedx/cyclonedx-npm": "^4.2.0",
-    "@libsql/client": "^0.17.0",
-    "@prisma/adapter-libsql": "^7.4.2",
-    "@prisma/client": "^7.4.2",
-    "dotenv": "^17.3.1",
-    "libsql": "^0.5.22"
+    "@babel/parser": "^7.28.0",
+    "@cyclonedx/cyclonedx-npm": "^4.2.0"
   },
   "devDependencies": {
-    "jest": "^30.2.0",
-    "prisma": "^7.4.2"
+    "jest": "^30.2.0"
   },
   "jest": {
     "testEnvironment": "node",

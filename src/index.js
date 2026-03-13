@@ -1,91 +1,133 @@
 #!/usr/bin/env node
 
-const path = require('path');
 const fs = require('fs');
-const { generateSBOM, readSBOM, extractComponents } = require('./lib/sbom');
-const { openDatabase, importComponents, closeDatabase } = require('./lib/database-libsql');
-const { generateSourceTestsMarkdown } = require('./lib/functions');
+const path = require('path');
+const os = require('os');
+const {
+  generateSBOM,
+  readSBOM,
+  extractComponents,
+} = require('./lib/sbom');
+const {
+  downloadRepos,
+  cleanupRepos,
+} = require('./lib/repo-downloader');
+const {
+  scanSourceFiles,
+  analyzeSourceFile,
+} = require('./lib/source-analyzer');
+const {
+  ensureHorsebox,
+  buildFileContentIndex,
+  buildFileLineIndex,
+} = require('./lib/horsebox');
+const {
+  writeMarkdownForSource,
+} = require('./lib/markdown-generator');
 
-/**
- * Analyzes an npm project and generates markdown files with external tests for each source file
- * @param {string} projectPath - Path to the npm project to analyze
- * @param {Object} options - Options object
- * @param {string} options.dbPath - Path to SQLite database (default: ctest.db)
- * @param {string} options.sbomPath - Path to SBOM file (default: sbom.cdx.json)
- * @param {boolean} options.downloadDependencies - Whether to download dependencies with repo_url (default: false)
- * @param {string} options.sourceFile - Optional: generate markdown for a single source file only
- */
 async function analyze(projectPath, options = {}) {
   const {
-    dbPath = 'ctest.db',
     sbomPath = 'sbom.cdx.json',
-    downloadDependencies: shouldDownloadDeps = false,
-    sourceFile: singleSourceFile
+    sourceFile,
+    downloadDependencies = false,
+    maxDownloads = 10,
   } = options;
 
-  const resolvedProjectPath = path.resolve(projectPath);
+  const resolvedProjectPath = path.resolve(projectPath || process.cwd());
 
-  // Check if project path exists
   if (!fs.existsSync(resolvedProjectPath)) {
     throw new Error(`Project path does not exist: ${resolvedProjectPath}`);
   }
 
-  // Generate SBOM
+  ensureHorsebox();
+
   console.log('Generating SBOM...');
-  const sbomFile = await generateSBOM(resolvedProjectPath, sbomPath, shouldDownloadDeps);
+  const generatedSbomPath = await generateSBOM(resolvedProjectPath, sbomPath, true);
 
-  // Read and parse SBOM
   console.log('Reading SBOM...');
-  const sbom = readSBOM(sbomFile);
+  const sbom = readSBOM(generatedSbomPath);
+  const allComponents = extractComponents(sbom).filter(c => c.repo_url);
+  console.log(`Found ${allComponents.length} components with repo_url`);
 
-  // Extract components
-  console.log('Extracting components...');
-  const components = extractComponents(sbom);
-  console.log(`Found ${components.length} components`);
+  let downloadInfo = { downloadRoot: null, results: {} };
 
-  // Import into database
-  console.log('Importing into database...');
-  const prisma = await openDatabase(dbPath, resolvedProjectPath);
-  await importComponents(prisma, components);
-  console.log(`Imported ${components.length} components`);
+  if (downloadDependencies) {
+    const componentsToDownload = allComponents.slice(0, maxDownloads);
+    console.log(`Downloading up to ${maxDownloads} dependency repositories...`);
+    downloadInfo = await downloadRepos(componentsToDownload);
+  }
 
-  // Generate source tests markdown
-  console.log('\nGenerating source tests markdown...');
-  const sourceTestsMarkdown = await generateSourceTestsMarkdown(prisma, resolvedProjectPath, {
-    downloadDependencies: shouldDownloadDeps,
-    sourceFile: singleSourceFile
-  });
+  const workRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-work-'));
+  const projectIndexDir = path.join(workRoot, 'index-project-files');
+  const libsIndexDir = path.join(workRoot, 'index-libs-files');
+  const libsLineIndexDir = path.join(workRoot, 'index-libs-lines');
 
-  await closeDatabase(prisma);
+  console.log('Building Horsebox index for project source files...');
+  buildFileContentIndex(resolvedProjectPath, projectIndexDir);
+
+  if (downloadInfo.downloadRoot && fs.existsSync(downloadInfo.downloadRoot)) {
+    console.log('Building Horsebox index for dependency source files...');
+    buildFileContentIndex(downloadInfo.downloadRoot, libsIndexDir);
+    buildFileLineIndex(downloadInfo.downloadRoot, libsLineIndexDir);
+  }
+
+  const sourceFiles = sourceFile
+    ? [path.resolve(resolvedProjectPath, sourceFile)]
+    : scanSourceFiles(resolvedProjectPath);
+
+  const generated = [];
+
+  for (const file of sourceFiles) {
+    if (!fs.existsSync(file)) {
+      console.warn(`Skipping missing file: ${file}`);
+      continue;
+    }
+
+    console.log(`Generating markdown for: ${path.relative(resolvedProjectPath, file)}`);
+
+    const usage = analyzeSourceFile(file);
+    const outputFile = `${file}.md`;
+
+    await writeMarkdownForSource({
+      sourceFile: file,
+      usage,
+      outputFile,
+      libsIndexDir,
+      libsLineIndexDir,
+    });
+
+    generated.push(path.relative(resolvedProjectPath, outputFile));
+  }
+
+  if (downloadInfo.downloadRoot) {
+    cleanupRepos(downloadInfo.downloadRoot);
+  }
 
   return {
-    sbomPath: sbomFile,
-    componentCount: components.length,
-    sourceTestsMarkdown
+    sbomPath: generatedSbomPath,
+    generated,
   };
 }
 
-// CLI execution
 if (require.main === module) {
   const args = process.argv.slice(2);
   const projectPath = args[0] || process.cwd();
-  const downloadDependenciesFlag = args.includes('--download-dependencies');
-  const sourceFileFlag = args.find(arg => arg.startsWith('--file='));
+  const fileArg = args.find(arg => arg.startsWith('--file='));
+  const downloadFlag = args.includes('--download-dependencies');
+  const maxDownloadsArg = args.find(arg => arg.startsWith('--max-downloads='));
 
-  (async () => {
-    try {
-      const result = await analyze(projectPath, {
-        downloadDependencies: downloadDependenciesFlag,
-        sourceFile: sourceFileFlag ? sourceFileFlag.split('=')[1] : undefined
-      });
-      console.log(`\nAnalysis complete. Database: ${projectPath}/ctest.db`);
-      console.log(`Generated ${result.sourceTestsMarkdown.generated} markdown files`);
-      process.exit(0);
-    } catch (error) {
+  analyze(projectPath, {
+    sourceFile: fileArg ? fileArg.split('=')[1] : undefined,
+    downloadDependencies: downloadFlag,
+    maxDownloads: maxDownloadsArg ? parseInt(maxDownloadsArg.split('=')[1], 10) : 10,
+  })
+    .then(result => {
+      console.log(`\nDone. Generated ${result.generated.length} markdown files.`);
+    })
+    .catch(error => {
       console.error('Error:', error.message);
       process.exit(1);
-    }
-  })();
+    });
 }
 
 module.exports = { analyze };

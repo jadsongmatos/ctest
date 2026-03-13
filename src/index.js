@@ -133,7 +133,7 @@ if (require.main === module) {
   analyze(projectPath, {
     sourceFile: fileArg ? fileArg.split('=')[1] : undefined,
     downloadDependencies: downloadFlag,
-    maxDownloads: maxDownloadsArg ? parseInt(maxDownloadsArg.split('=')[1], 10) : 10,
+    maxDownloads: maxDownloadsArg ? parseInt(maxDownloadsArg.split('=')[1], 10) : -1,
     respectGitIgnore,
   })
     .then(result => {

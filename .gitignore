@@ -22,3 +22,5 @@ coverage/
 
 ref/
 *.db
+
+*.cdx.json

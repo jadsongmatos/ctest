@@ -1,302 +1,274 @@
 # Ctest
 
-Ctest is a command-line tool that analyzes npm projects and generates markdown files with external library tests for each source file.
+Ctest é uma ferramenta de linha de comando que analisa projetos npm e gera arquivos markdown com testes das dependências externas para cada arquivo de código-fonte, usando **Horsebox** como mecanismo de busca de código.
 
-## Overview
+## Visão Geral
 
-Ctest analyzes your npm project to identify which external library functions are used in each source file, then generates markdown files containing the relevant test cases from those external libraries.
+O Ctest analisa seu projeto npm para identificar quais funções de bibliotecas externas são usadas em cada arquivo fonte, então gera arquivos markdown contendo os casos de teste relevantes dessas bibliotecas externas.
 
-## Features
+## Recursos
 
-- Generates CycloneDX SBOM for npm projects
-- Imports SBOM into SQLite database using Prisma ORM
-- Downloads source code from external dependencies using repo_url
-- Extracts test files from external dependencies
-- Analyzes source code to identify external library function usage
-- Generates `.md` files for each source file with relevant external tests
+- Gera um SBOM CycloneDX para projetos npm
+- Baixa código fonte de dependências usando `repo_url`
+- Indexa **todo o código do projeto** e **das dependências** com Horsebox
+- Analisa o código-fonte do projeto para identificar funções de libs externas usadas
+- Detecta **cadeias de member expressions** (ex: `prisma.component.upsert`)
+- Rastreia **instâncias de classes importadas** (ex: `new PrismaClient()`)
+- Pergunta ao Horsebox **onde cada função apareceu nas dependências**
+- Filtra resultados para **arquivos de teste**
+- Copia **todos os blocos `test()` / `it()` relevantes** para o `.md`
 
-## Prerequisites
+## Dependências Externas
 
-- Node.js (v14 or higher)
-- npm
-- Git (for downloading dependency source code)
+O Ctest requer o **Horsebox** (`hb`) instalado no sistema:
 
-## Installation
+```bash
+# Instalar uv (gerenciador de pacotes Python)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Instalar Horsebox
+uv tool install git+https://github.com/michelcaradec/horsebox
+```
+
+## Instalação
 
 ```bash
 npm install
 ```
 
-## Quick Start
+## Início Rápido
 
-Analyze an npm project and generate markdown files with external tests:
+Analise um projeto npm e gere arquivos markdown com testes externos:
 
 ```bash
+# Com download de dependências (recomendado para resultados completos)
+node src/index.js /caminho/para/projeto --download-dependencies --max-downloads=10
+
+# Sem download (usa apenas código já disponível)
+node src/index.js /caminho/para/projeto
+```
+
+## Uso
+
+### Opções de Linha de Comando
+
+| Opção | Descrição |
+|-------|-----------|
+| `<project-path>` | Caminho para o projeto npm a ser analisado (obrigatório) |
+| `--download-dependencies` | Baixar código fonte das dependências com `repo_url` |
+| `--max-downloads=<n>` | Número máximo de dependências para baixar (padrão: 10) |
+| `--file=<arquivo>` | Gerar markdown para um único arquivo fonte |
+
+### Gerar arquivos markdown para todo o projeto
+
+```bash
+node src/index.js <projeto> --download-dependencies --max-downloads=10
+```
+
+### Gerar markdown para um único arquivo
+
+```bash
+node src/index.js <projeto> --download-dependencies --max-downloads=10 --file=index.js
+```
+
+### Exemplos
+
+```bash
+# Analisar diretório atual
+node src/index.js . --download-dependencies --max-downloads=5
+
+# Analisar um projeto específico
 node src/index.js /path/to/npm/project --download-dependencies
-```
 
-## Usage
-
-### Command-Line Options
-
-| Option | Description |
-|--------|-------------|
-| `<project-path>` | Path to the npm project to analyze (required) |
-| `--download-dependencies` | Download source code from dependencies with repo_url |
-| `--file=<filename>` | Generate markdown for a single source file only |
-
-### Generate markdown files for all source files
-
-```bash
-node src/index.js <project-path> --download-dependencies
-```
-
-### Generate markdown file for a single source file
-
-```bash
-node src/index.js <project-path> --download-dependencies --file=index.js
-```
-
-### Examples
-
-```bash
-# Analyze current directory
-node src/index.js . --download-dependencies
-
-# Analyze a specific project
-node src/index.js /path/to/npm/project --download-dependencies
-
-# Generate markdown for a single file
+# Gerar markdown para um único arquivo
 node src/index.js /path/to/npm/project --download-dependencies --file=src/index.js
+
+# Analisar o próprio ctest
+node src/index.js /workspaces/ctest --download-dependencies --max-downloads=3
 ```
 
-### Analyzing the Ctest Project Itself
+## Como Funciona
 
-```bash
-# Analyze the ctest project
-node src/index.js /workspaces/ctest --download-dependencies
+1. **Gerar SBOM**: O Ctest usa `@cyclonedx/cyclonedx-npm` para gerar um SBOM CycloneDX
+2. **Extrair componentes**: Componentes com `repo_url` são identificados
+3. **Baixar dependências** (opcional): Código fonte é clonado via Git
+4. **Indexar com Horsebox**:
+   - Código do projeto → índice `filecontent`
+   - Código das dependências → índices `filecontent` + `fileline`
+5. **Analisar código fonte**: Cada arquivo é parseado com AST para identificar:
+   - Imports ES6 e CommonJS
+   - Member expressions em cadeia (ex: `prisma.component.upsert`)
+   - Instâncias de classes (ex: `new PrismaClient()`)
+6. **Buscar testes externos**: Para cada lib detectada:
+   - Constrói consultas baseadas nas funções usadas
+   - Query Horsebox nos índices das dependências
+   - Filtra apenas arquivos de teste
+7. **Extrair blocos de teste**: Abre arquivos de teste e extrai blocos `test()` / `it()` relevantes
+8. **Gerar Markdown**: Cria arquivo `.md` com todos os testes encontrados
 
-# Analyze a specific file in ctest
-node src/index.js /workspaces/ctest --download-dependencies --file=src/index.js
-```
+## Formato de Saída
 
-## How It Works
-
-1. **Generate SBOM**: Ctest uses `@cyclonedx/cyclonedx-npm` to generate a CycloneDX SBOM for the target npm project
-2. **Parse SBOM**: The SBOM is parsed to extract component information (name, version, repo_url)
-3. **Import to SQLite**: Components are imported into a SQLite database (`ctest.db` at the project root)
-4. **Download Dependencies**: When `--download-dependencies` is used, source code is cloned from `repo_url` for each component
-5. **Extract External Tests**: Test files are extracted from downloaded dependencies (files in `test/`, `tests/`, `__tests__/` directories)
-6. **Analyze Source Code**: Each source file is parsed to identify which external library functions are used
-7. **Generate Markdown**: For each source file, a `.md` file is generated containing:
-   - List of external libraries used
-   - Functions from each library that are used
-   - Relevant test files from those libraries
-   - Complete content of each test file
-
-## Generating SBOM Manually
-
-> **Note:** Ctest automatically generates the SBOM when you run the analysis. Use this command only if you need the SBOM file separately.
-
-```bash
-npx @cyclonedx/cyclonedx-npm --output-format JSON --output-file sbom.cdx.json
-```
-
-## Database Schema
-
-The SQLite database contains the following tables:
-
-### `components`
-
-| Column     | Type      | Description              |
-|------------|-----------|--------------------------|
-| `id`       | INTEGER   | Primary key (auto-increment) |
-| `name`     | TEXT      | Package name             |
-| `version`  | TEXT      | Package version          |
-| `repo_url` | TEXT      | Repository URL (if any)  |
-| `created_at` | DATETIME  | Import timestamp         |
-
-### `external_components`
-
-| Column         | Type      | Description              |
-|----------------|-----------|--------------------------|
-| `id`           | INTEGER   | Primary key (auto-increment) |
-| `name`         | TEXT      | Package name             |
-| `version`      | TEXT      | Package version          |
-| `repo_url`     | TEXT      | Repository URL           |
-| `downloadPath` | TEXT      | Local download path      |
-| `createdAt`    | DATETIME  | Creation timestamp       |
-
-### `external_test_files`
-
-| Column              | Type      | Description              |
-|---------------------|-----------|--------------------------|
-| `id`                | INTEGER   | Primary key (auto-increment) |
-| `externalComponentId` | INTEGER | Foreign key to `external_components` |
-| `path`              | TEXT      | Test file path           |
-
-## Output Format
-
-For each source file (e.g., `index.js`), a markdown file is generated (`index.js.md`) with the following structure:
+Para cada arquivo fonte (ex: `index.js`), um arquivo markdown é gerado (`index.js.md`):
 
 ```markdown
-# External Tests for index.js
+# External tests for index.js
 
-Testes de dependências externas usadas neste arquivo.
+**Arquivo:** `/caminho/para/index.js`
 
-**Arquivo:** `/path/to/index.js`
+## @prisma/client
 
-## Sumário
+**Consultas usadas no Horsebox:** `component.upsert`, `upsert`, `client upsert`
 
-- **Total de componentes:** 1
-- **Total de arquivos de teste:** 5
+**Arquivos de teste encontrados:** 141
 
----
+### /tmp/ctest-repos-xxx/prisma/packages/client/src/__tests__/integration/upsert.test.ts
 
-## lodash@4.17.21
+#### should upsert a record
 
-**Funções usadas neste arquivo:** `capitalize`, `map`, `filter`
-
-### test-string.js
-
-**Caminho original:** `/tmp/.../lodash/test/test-string.js`
-
-**Funções testadas:**
-- `capitalize`
-- `map`
-
-**Conteúdo do arquivo de teste:**
-
-```javascript
-// ... complete test file content ...
+```ts
+it('should upsert a record', async () => {
+  const result = await prisma.component.upsert({
+    where: { id: 1 },
+    create: { name: 'test' },
+    update: { name: 'updated' }
+  });
+  expect(result.name).toBe('updated');
+});
 ```
-```
-## API
 
-### Programmatic Usage
+### /tmp/ctest-repos-xxx/prisma/packages/client/src/__tests__/functional/upsert/basic.ts
+
+#### basic upsert functionality
+
+```ts
+test('basic upsert functionality', () => {
+  // ... conteúdo completo do teste ...
+});
+```
+
+## lodash
+
+**Consultas usadas no Horsebox:** `map`, `filter`, `capitalize`
+
+**Arquivos de teste encontrados:** 329
+
+### ...
+```
+
+## Uso Programático
 
 ```javascript
 const { analyze } = require('./src/index');
 
 async function main() {
-  const result = await analyze('/path/to/npm/project', {
-    dbPath: 'ctest.db',                 // SQLite database path (at project root)
-    sbomPath: 'sbom.cdx.json',          // SBOM file path
-    downloadDependencies: true,         // Whether to download dependencies with repo_url
-    sourceFile: 'index.js'              // Optional: generate markdown for a single file only
+  const result = await analyze('/caminho/para/projeto', {
+    sbomPath: 'sbom.cdx.json',      // Caminho do SBOM (padrão: sbom.cdx.json)
+    sourceFile: 'index.js',         // Opcional: analisar único arquivo
+    downloadDependencies: true,     // Baixar dependências (padrão: false)
+    maxDownloads: 10,               // Máximo de dependências para baixar
   });
 
   console.log(result);
   // {
-  //   sbomPath: '/path/to/sbom.cdx.json',
-  //   componentCount: 42,
-  //   sourceTestsMarkdown: {
-  //     generated: 1,
-  //     files: [...]
-  //   }
+  //   sbomPath: '/caminho/para/sbom.cdx.json',
+  //   generated: ['src/index.js.md', 'src/lib/utils.js.md', ...]
   // }
 }
 ```
 
-### Module Functions
+## Módulos
 
-#### SBOM Module (`src/lib/sbom.js`)
+### SBOM (`src/lib/sbom.js`)
 
-| Function | Description |
-|----------|-------------|
-| `generateSBOM(projectPath, outputFile, fetchRepoUrls)` | Generate CycloneDX SBOM |
-| `readSBOM(sbomPath)` | Read and parse SBOM file |
-| `extractComponents(sbom)` | Extract components from SBOM |
-| `createSBOMFromPackageLock(packageLock, fetchRepoUrls)` | Create SBOM from package-lock.json |
-| `fetchNpmPackageInfo(packageName)` | Fetch package metadata from npm registry |
+| Função | Descrição |
+|--------|-----------|
+| `generateSBOM(projectPath, outputFile, fetchRepoUrls)` | Gera SBOM CycloneDX |
+| `readSBOM(sbomPath)` | Lê e parseia arquivo SBOM |
+| `extractComponents(sbom)` | Extrai componentes do SBOM |
+| `createSBOMFromPackageLock(packageLock, fetchRepoUrls)` | Cria SBOM do package-lock.json |
 
-#### Database Module (`src/lib/database-libsql.js`)
+### Horsebox (`src/lib/horsebox.js`)
 
-| Function | Description |
-|----------|-------------|
-| `openDatabase(dbPath, projectPath)` | Open/create SQLite database at project root |
-| `importComponents(db, components)` | Import components to database |
-| `upsertExternalComponent(db, name, version, repoUrl, downloadPath)` | Insert/update external component |
-| `upsertExternalTestFile(db, externalComponentId, testPath)` | Insert/update external test file |
-| `closeDatabase(db)` | Close database connection |
+| Função | Descrição |
+|--------|-----------|
+| `ensureHorsebox()` | Verifica se `hb` está instalado |
+| `buildFileContentIndex(fromDir, indexDir)` | Cria índice filecontent |
+| `buildFileLineIndex(fromDir, indexDir)` | Cria índice fileline |
+| `searchIndex(indexDir, query, limit)` | Busca no índice |
 
-#### Functions Module (`src/lib/functions.js`)
+### Source Analyzer (`src/lib/source-analyzer.js`)
 
-| Function | Description |
-|----------|-------------|
-| `generateSourceTestsMarkdown(db, projectPath, options)` | Generate markdown files with external tests |
+| Função | Descrição |
+|--------|-----------|
+| `analyzeSourceFile(filePath)` | Analisa arquivo fonte identificando uso de libs externas |
+| `scanSourceFiles(dir)` | Varre diretório por arquivos JS/TS |
 
-Options:
-- `options.downloadDependencies` — Whether to download dependencies with repo_url
-- `options.sourceFile` — Optional: generate markdown for a single source file only
+### Test Extractor (`src/lib/test-extractor.js`)
 
-#### External Test Extractor Module (`src/lib/external-test-extractor.js`)
+| Função | Descrição |
+|--------|-----------|
+| `extractTestBlocks(content)` | Extrai blocos `test()` / `it()` do código |
+| `extractRelevantBlocksFromFile(filePath, terms)` | Extrai blocos relevantes de um arquivo |
 
-| Function | Description |
-|----------|-------------|
-| `scanExternalTestFiles(db, componentName, componentVersion, componentPath, repoUrl)` | Scan a dependency for test files |
-| `scanAllExternalTests(db, downloadInfo)` | Scan all downloaded dependencies for test files |
-| `generateSourceFileTestsMarkdown(db, sourceFilePath, outputFile)` | Generate markdown for a single source file |
+### Markdown Generator (`src/lib/markdown-generator.js`)
 
-#### Source Analyzer Module (`src/lib/source-analyzer.js`)
+| Função | Descrição |
+|--------|-----------|
+| `writeMarkdownForSource(options)` | Gera arquivo markdown para um arquivo fonte |
 
-| Function | Description |
-|----------|-------------|
-| `analyzeSourceFile(filePath)` | Analyze a source file to identify external library function usage |
-| `analyzeProject(projectPath)` | Analyze all source files in a project |
-| `scanSourceFiles(dir)` | Scan a directory for JavaScript/TypeScript source files |
+### Repo Downloader (`src/lib/repo-downloader.js`)
 
-#### Source Parser Module (`src/lib/source-parser.js`)
+| Função | Descrição |
+|--------|-----------|
+| `downloadRepos(components, options)` | Baixa repositórios das dependências |
+| `cleanupRepos(downloadRoot)` | Remove repositórios baixados |
+| `parseRepoUrl(repoUrl, version)` | Parseia URL do repositório |
 
-| Function | Description |
-|----------|-------------|
-| `parseFile(filePath)` | Parse a JavaScript file and extract function definitions |
-| `scanDirectory(dir, options)` | Scan a directory recursively for JavaScript files |
+### Utils (`src/lib/utils.js`)
 
-#### Repo Downloader Module (`src/lib/repo-downloader.js`)
+| Função | Descrição |
+|--------|-----------|
+| `uniq(items)` | Remove duplicatas |
+| `normalizeLibraryNames(libName)` | Gera variações de nome da lib |
+| `isTestFile(filePath)` | Verifica se arquivo é de teste |
+| `safeReadFile(filePath)` | Lê arquivo com tratamento de erro |
 
-| Function | Description |
-|----------|-------------|
-| `downloadRepos(components, baseDir)` | Download source code for components with repo_url |
-| `installDependencies(repoPath)` | Install dependencies for a downloaded repository |
-| `cleanupRepos(downloadRoot)` | Clean up downloaded repositories |
-| `parseRepoUrl(repoUrl, version)` | Parse repo URL to extract git clone URL |
-| `cloneRepo(gitUrl, ref, destDir)` | Clone a git repository |
-
-## Running Tests
-
-Run the test suite:
+## Rodando Testes
 
 ```bash
 npm test
 ```
 
-## Test Projects
-
-The `ref/` folder contains test project repositories for testing and development purposes.
-
-## Project Structure
+## Estrutura do Projeto
 
 ```
 ctest/
 ├── src/
-│   ├── index.js                      # Main CLI entry point
+│   ├── index.js                      # Ponto de entrada CLI
 │   └── lib/
-│       ├── database-libsql.js        # Database operations (libsql)
-│       ├── sbom.js                   # SBOM generation and parsing
-│       ├── functions.js              # Markdown generation
-│       ├── external-test-extractor.js # External test extraction
-│       ├── source-analyzer.js        # Source code analysis
-│       ├── source-parser.js          # JavaScript/TypeScript parser
-│       ├── dependency-scanner.js     # Dependency scanning
-│       └── repo-downloader.js        # Git repository downloader
-├── prisma/
-│   └── schema.prisma                 # Prisma schema definition
-├── ctest.db                          # SQLite database (generated at analyzed project root)
-├── ref/                              # Test projects
-├── tests/                            # Test files
-└── scripts/                          # Utility scripts
+│       ├── horsebox.js               # Integração com Horsebox
+│       ├── markdown-generator.js     # Geração de markdown
+│       ├── repo-downloader.js        # Download de repositórios Git
+│       ├── sbom.js                   # Geração/parse de SBOM
+│       ├── source-analyzer.js        # Análise de código fonte (AST)
+│       ├── test-extractor.js         # Extração de blocos de teste
+│       └── utils.js                  # Funções utilitárias
+├── tests/                            # Arquivos de teste
+├── ref/                              # Projetos de teste
+└── scripts/                          # Scripts utilitários
 ```
+
+## Comparação: v1.x vs v2.0
+
+| Recurso | v1.x (Prisma/SQLite) | v2.0 (Horsebox) |
+|---------|---------------------|-----------------|
+| Armazenamento | SQLite + Prisma | Índices Horsebox (temporários) |
+| Busca de testes | Query SQL no banco | Busca full-text no código |
+| Precisão | Baseada em hits de funções | Baseada em termos + contexto |
+| Performance | Mais lento (setup de DB) | Mais rápido (índices otimizados) |
+| Dependências | Prisma, libsql, SQLite | Horsebox (`hb`) |
+| Schema | Necessário criar/manter | Automático |
+| Persistência | Banco permanente | Índices temporários |
 
 ## License
 

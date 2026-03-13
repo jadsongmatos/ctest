@@ -3,6 +3,65 @@ const path = require('path');
 const parser = require('@babel/parser');
 
 /**
+ * Extracts the root object name from a (possibly chained) member expression
+ * e.g., "prisma.component.upsert" -> "prisma"
+ * @param {Object} node - AST node (Identifier or MemberExpression)
+ * @returns {string|null} - Root object name or null
+ */
+function getRootObjectName(node) {
+  if (!node) return null;
+  
+  if (node.type === 'Identifier') {
+    return node.name;
+  }
+  
+  if (node.type === 'MemberExpression') {
+    return getRootObjectName(node.object);
+  }
+  
+  return null;
+}
+
+/**
+ * Extracts all property names from a (possibly chained) member expression
+ * e.g., "prisma.component.upsert" -> ["component", "upsert"]
+ * @param {Object} node - AST node (Identifier or MemberExpression)
+ * @returns {Array<string>} - Array of property names
+ */
+function getMemberProperties(node) {
+  if (!node) return [];
+  
+  if (node.type === 'Identifier') {
+    return [];
+  }
+  
+  if (node.type === 'MemberExpression') {
+    const props = [];
+    
+    // Get property name
+    let propName = null;
+    if (node.property.type === 'Identifier') {
+      propName = node.property.name;
+    } else if (node.property.type === 'StringLiteral') {
+      propName = node.property.value;
+    }
+    
+    // Recursively get properties from the object
+    if (node.object.type === 'MemberExpression') {
+      props.push(...getMemberProperties(node.object));
+    }
+    
+    if (propName) {
+      props.push(propName);
+    }
+    
+    return props;
+  }
+  
+  return [];
+}
+
+/**
  * Analyzes a source file to identify external library function usage
  * @param {string} filePath - Path to the source file
  * @returns {Object} - Map of library names to arrays of used functions
@@ -23,6 +82,7 @@ function analyzeSourceFile(filePath) {
 
     const libraryUsage = {};
     const imports = {};
+    const classInstances = {}; // Track instances of imported classes
 
     // First pass: extract all imports/requires and build parent relationships
     traverse(ast, (node, parent) => {
@@ -75,62 +135,80 @@ function analyzeSourceFile(filePath) {
           }
         }
       }
+
+      // Handle class instantiation: const prisma = new PrismaClient()
+      if (node.type === 'NewExpression' && node.callee.type === 'Identifier') {
+        const className = node.callee.name;
+        if (imports[className]) {
+          // This is an instantiation of an imported class
+          if (parent && parent.type === 'VariableDeclarator' && parent.id.type === 'Identifier') {
+            const instanceName = parent.id.name;
+            // Map the instance to the same library as the class
+            classInstances[instanceName] = imports[className];
+          }
+        }
+      }
     });
 
     // Second pass: find member expressions and function calls
     traverse(ast, (node, parent) => {
       if (node.type === 'MemberExpression') {
-        let objName = null;
+        // Get root object name (handles chained expressions like prisma.component.upsert)
+        const objName = getRootObjectName(node);
 
-        // Get object name
-        if (node.object.type === 'Identifier') {
-          objName = node.object.name;
-        }
+        // Check both direct imports and class instances
+        const libName = imports[objName] || classInstances[objName];
 
-        if (objName && imports[objName]) {
-          const libName = imports[objName];
+        if (libName) {
+          // Get all property names from the chain
+          const props = getMemberProperties(node);
 
-          // Get property name
-          let propName = null;
-          if (node.property.type === 'Identifier') {
-            propName = node.property.name;
-          } else if (node.property.type === 'StringLiteral') {
-            propName = node.property.value;
-          }
-
-          if (propName) {
+          if (props.length > 0) {
             if (!libraryUsage[libName]) {
               libraryUsage[libName] = { functions: new Set(), members: {} };
             }
             if (!libraryUsage[libName].members[objName]) {
               libraryUsage[libName].members[objName] = new Set();
             }
-            libraryUsage[libName].members[objName].add(propName);
+            // Add all properties in the chain
+            props.forEach(prop => libraryUsage[libName].members[objName].add(prop));
           }
         }
       }
 
       // Also handle direct function calls: _.map(arr, fn)
       if (node.type === 'CallExpression') {
-        let calleeName = null;
-        
         if (node.callee.type === 'Identifier') {
           // Direct call: map(arr)
-          calleeName = node.callee.name;
-        } else if (node.callee.type === 'MemberExpression' && node.callee.property.type === 'Identifier') {
-          // Member call: _.map(arr)
-          const objName = node.callee.object.name;
-          if (objName && imports[objName]) {
-            const libName = imports[objName];
-            const propName = node.callee.property.name;
-            
+          const calleeName = node.callee.name;
+          if (imports[calleeName]) {
+            const libName = imports[calleeName];
             if (!libraryUsage[libName]) {
               libraryUsage[libName] = { functions: new Set(), members: {} };
             }
-            if (!libraryUsage[libName].members[objName]) {
-              libraryUsage[libName].members[objName] = new Set();
+            libraryUsage[libName].functions.add(calleeName);
+          }
+        } else if (node.callee.type === 'MemberExpression') {
+          // Member call: _.map(arr) or prisma.component.upsert()
+          const objName = getRootObjectName(node.callee);
+
+          // Check both direct imports and class instances
+          const libName = imports[objName] || classInstances[objName];
+
+          if (libName) {
+            // Get all property names from the chain
+            const props = getMemberProperties(node.callee);
+
+            if (props.length > 0) {
+              if (!libraryUsage[libName]) {
+                libraryUsage[libName] = { functions: new Set(), members: {} };
+              }
+              if (!libraryUsage[libName].members[objName]) {
+                libraryUsage[libName].members[objName] = new Set();
+              }
+              // Add all properties in the chain
+              props.forEach(prop => libraryUsage[libName].members[objName].add(prop));
             }
-            libraryUsage[libName].members[objName].add(propName);
           }
         }
       }
@@ -219,14 +297,14 @@ function scanSourceFiles(dir) {
 function analyzeProject(projectPath) {
   const sourceFiles = scanSourceFiles(projectPath);
   const result = {};
-  
+
   for (const file of sourceFiles) {
     const usage = analyzeSourceFile(file);
     if (Object.keys(usage).length > 0) {
       result[file] = usage;
     }
   }
-  
+
   return result;
 }
 

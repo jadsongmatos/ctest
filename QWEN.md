@@ -6,9 +6,14 @@ Ctest é uma ferramenta de linha de comando que analisa projetos npm e gera arqu
 
 * Gera um SBOM CycloneDX para projetos npm
 * Importa o SBOM para um banco SQLite usando o ORM Prisma com adapter libsql
+* **Cria/atualiza automaticamente o schema do banco de dados** quando necessário
 * Baixa código fonte de dependências usando repo_url
+* **Suporte a sparse checkout para monorepos grandes** (ex: Prisma)
+* **Download seletivo** de apenas dependências usadas no arquivo analisado
 * Extrai arquivos de teste das dependências externas
 * Analisa o código-fonte do projeto para identificar funções de libs externas usadas
+* **Detecta cadeias de member expressions** (ex: `prisma.component.upsert`)
+* **Rastreia instâncias de classes importadas** (ex: `new PrismaClient()`)
 * Gera um arquivo `.md` para cada arquivo de código-fonte com os testes das funções usadas
 
 ## Dependências
@@ -39,6 +44,8 @@ Este comando gera um arquivo `.md` para o arquivo de código-fonte especificado 
 - Testes externos disponíveis para essas funções
 - Conteúdo completo dos arquivos de teste
 
+**Nota:** O banco de dados é criado automaticamente na primeira execução. Para repositórios grandes (ex: Prisma), use `--download-dependencies` para baixar os testes externos.
+
 ## Esquema do banco de dados
 
 O banco SQLite contém as seguintes tabelas:
@@ -59,16 +66,20 @@ O banco SQLite contém as seguintes tabelas:
 ## Estrutura do projeto
 
 * `src/index.js` - ponto de entrada principal do CLI
-* `src/lib/database-libsql.js` - operações de banco de dados usando Prisma com adapter libsql
+* `src/lib/database-libsql.js` - operações de banco de dados usando Prisma com adapter libsql (com criação automática do schema)
 * `src/lib/sbom.js` - geração e parsing do SBOM
-* `src/lib/functions.js` - geração de markdown para arquivos de código-fonte
-* `src/lib/repo-downloader.js` - download de repositórios git usando repo_url
+* `src/lib/functions.js` - geração de markdown para arquivos de código-fonte (com download seletivo)
+* `src/lib/repo-downloader.js` - download de repositórios git (com suporte a blobless clone para monorepos)
 * `src/lib/external-test-extractor.js` - extração de testes de dependências externas
 * `src/lib/source-parser.js` - parser de código JavaScript/TypeScript
-* `src/lib/source-analyzer.js` - análise de imports e uso de bibliotecas externas
+* `src/lib/source-analyzer.js` - análise de imports e uso de bibliotecas externas (detecta member expressions em cadeia)
 * `prisma/schema.prisma` - definição do schema do Prisma
 * `prisma.config.ts` - configuração do Prisma
 * `tests/` - arquivos de teste
+  * `database.test.js` - testes do módulo de banco de dados
+  * `duplicate.test.js` - testes de idempotência (verifica que dados não são duplicados)
+  * `index.test.js` - testes do CLI principal
+  * `sbom.test.js` - testes de geração de SBOM
 * `ref/` - projetos de teste de referência
 
 ## Desenvolvimento
@@ -89,6 +100,36 @@ Antes de implementar novos recursos, execute os testes:
 npm test
 ```
 
+### Testes de idempotência
+
+O projeto inclui testes que verificam que a execução múltipla não duplica dados:
+
+```bash
+npm test -- --testPathPatterns=duplicate.test.js
+```
+
+Os testes verificam:
+- A função `importComponents` usa `upsert` para evitar duplicatas
+- Componentes são únicos pela combinação `name@version`
+- Múltiplas execuções mantêm dados consistentes
+
 ## Regras de criação de arquivos
 
 Não crie arquivos diretamente em **`/workspaces/ctest`**; crie-os **somente em subdiretórios** dentro desse diretório.
+
+## Melhorias Recentes
+
+### Detecção de funções em cadeias de member expressions
+O source-analyzer agora detecta corretamente funções usadas em cadeias como `prisma.component.upsert()`, extraindo todas as propriedades da cadeia.
+
+### Rastreamento de instâncias de classes
+O analyzer rastreia instâncias de classes importadas (ex: `const prisma = new PrismaClient()`) e associa chamadas de método à biblioteca original.
+
+### Criação automática do schema
+O banco de dados é criado e configurado automaticamente na primeira execução, sem necessidade de comandos manuais.
+
+### Download otimizado para monorepos
+Para repositórios grandes como Prisma, o downloader usa:
+- `--filter=blob:none` para clone inicial rápido
+- Checkout seletivo de paths específicos
+- Timeout configurável por operação

@@ -2,6 +2,8 @@ const { PrismaClient } = require('@prisma/client');
 const { PrismaLibSql } = require('@prisma/adapter-libsql');
 const path = require('path');
 const fs = require('fs');
+const { execSync } = require('child_process');
+const { createClient } = require('@libsql/client');
 
 /**
  * Creates or opens a database connection and returns a Prisma client
@@ -26,6 +28,9 @@ async function openDatabase(dbPath, projectPath) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
+  // Ensure database schema exists BEFORE opening connection
+  await ensureDatabaseSchemaAsync(resolvedPath);
+
   // Set DATABASE_URL for Prisma config
   process.env.DATABASE_URL = `file:${resolvedPath}`;
 
@@ -40,6 +45,55 @@ async function openDatabase(dbPath, projectPath) {
   });
 
   return prisma;
+}
+
+/**
+ * Checks if the database schema exists and creates it if not (async version)
+ * @param {string} dbPath - Path to the database file
+ */
+async function ensureDatabaseSchemaAsync(dbPath) {
+  // Check if database file exists
+  if (!fs.existsSync(dbPath)) {
+    // Database doesn't exist, will be created by Prisma on first use
+    // Apply schema proactively
+    await applySchemaAsync(dbPath);
+    return;
+  }
+
+  // Database exists, check if schema is applied
+  try {
+    const libsql = createClient({ url: `file:${dbPath}` });
+    const result = libsql.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='components'");
+    
+    if (!result || result.rows.length === 0) {
+      // Schema doesn't exist, apply it
+      await applySchemaAsync(dbPath);
+    }
+    
+    libsql.close();
+  } catch (error) {
+    // Query failed, apply schema
+    await applySchemaAsync(dbPath);
+  }
+}
+
+/**
+ * Applies the Prisma schema to the database (async version)
+ * @param {string} dbPath - Path to the database file
+ */
+async function applySchemaAsync(dbPath) {
+  console.log('Database schema not found, applying schema...');
+  try {
+    const projectRoot = path.resolve(__dirname, '../..');
+    execSync(`DATABASE_URL=file:${dbPath} npx prisma db push --accept-data-loss`, {
+      cwd: projectRoot,
+      stdio: 'pipe',
+      timeout: 60000 // 60 second timeout
+    });
+    console.log('Database schema applied successfully.');
+  } catch (error) {
+    console.warn(`Warning: Failed to apply database schema: ${error.message}`);
+  }
 }
 
 /**

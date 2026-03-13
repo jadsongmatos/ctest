@@ -6,10 +6,15 @@ Testes de dependências externas usadas neste arquivo.
 
 ## Sumário
 
-- **Total de componentes:** 6
-- **Total de arquivos de teste:** 14
+- **Total de componentes:** 8
+- **Total de arquivos de teste:** 22
 
 ---
+
+## pathe@
+
+**Funções usados neste arquivo:** resolve
+
 
 ## path-scurry@
 
@@ -17,7 +22,7 @@ Testes de dependências externas usadas neste arquivo.
 
 ### index.ts.test.cjs
 
-**Caminho original:** `/tmp/ctest-repos-z91GLV/afdea7bc35-path-scurry/tap-snapshots/test/index.ts.test.cjs`
+**Caminho original:** `/tmp/ctest-repos-3nLWsr/afdea7bc35-path-scurry/tap-snapshots/test/index.ts.test.cjs`
 
 **Funções testadas:**
 
@@ -908,7 +913,7 @@ Set {
 
 ### test.js
 
-**Caminho original:** `/tmp/ctest-repos-z91GLV/c7cde3e261-path-exists/test.js`
+**Caminho original:** `/tmp/ctest-repos-3nLWsr/c7cde3e261-path-exists/test.js`
 
 **Funções testadas:**
 
@@ -941,7 +946,7 @@ test('sync', t => {
 
 ### test.js
 
-**Caminho original:** `/tmp/ctest-repos-z91GLV/bfb4e2a9c2-path-key/test.js`
+**Caminho original:** `/tmp/ctest-repos-3nLWsr/bfb4e2a9c2-path-key/test.js`
 
 **Funções testadas:**
 
@@ -974,7 +979,7 @@ test('main', t => {
 
 ### test.js
 
-**Caminho original:** `/tmp/ctest-repos-z91GLV/9adaed72d2-path-is-absolute/test.js`
+**Caminho original:** `/tmp/ctest-repos-3nLWsr/9adaed72d2-path-is-absolute/test.js`
 
 **Funções testadas:**
 
@@ -1021,7 +1026,7 @@ assert.equal(path.posix.isAbsolute('./baz'), false);
 
 ### get-options.js
 
-**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/common/get-options.js`
+**Caminho original:** `/tmp/ctest-repos-3nLWsr/3f4bb586f0-fs/test/common/get-options.js`
 
 **Funções testadas:**
 
@@ -1062,7 +1067,7 @@ t.test('wraps non-object values in named property', async (t) => {
 
 ### node.js
 
-**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/common/node.js`
+**Caminho original:** `/tmp/ctest-repos-3nLWsr/3f4bb586f0-fs/test/common/node.js`
 
 **Funções testadas:**
 
@@ -1095,7 +1100,7 @@ t.test('returns false if range does not match', async (t) => {
 
 ### errors.js
 
-**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/cp/errors.js`
+**Caminho original:** `/tmp/ctest-repos-3nLWsr/3f4bb586f0-fs/test/cp/errors.js`
 
 **Funções testadas:**
 
@@ -1192,7 +1197,7 @@ t.test('inspect', async t => {
 
 ### index.js
 
-**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/cp/index.js`
+**Caminho original:** `/tmp/ctest-repos-3nLWsr/3f4bb586f0-fs/test/cp/index.js`
 
 **Funções testadas:**
 
@@ -1239,7 +1244,7 @@ t.test('can copy a directory', async (t) => {
 
 ### polyfill.js
 
-**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/cp/polyfill.js`
+**Caminho original:** `/tmp/ctest-repos-3nLWsr/3f4bb586f0-fs/test/cp/polyfill.js`
 
 **Funções testadas:**
 
@@ -1635,7 +1640,7 @@ function collectEntries (dir, dirEntries) {
 
 ### move-file.js
 
-**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/move-file.js`
+**Caminho original:** `/tmp/ctest-repos-3nLWsr/3f4bb586f0-fs/test/move-file.js`
 
 **Funções testadas:**
 
@@ -1921,7 +1926,7 @@ t.test('overwrite option with non-ENOENT access error', async t => {
 
 ### readdir-scoped.js
 
-**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/readdir-scoped.js`
+**Caminho original:** `/tmp/ctest-repos-3nLWsr/3f4bb586f0-fs/test/readdir-scoped.js`
 
 **Funções testadas:**
 
@@ -1953,7 +1958,7 @@ t.test('readdir scoped', async (t) => {
 
 ### with-temp-dir.js
 
-**Caminho original:** `/tmp/ctest-repos-z91GLV/3f4bb586f0-fs/test/with-temp-dir.js`
+**Caminho original:** `/tmp/ctest-repos-3nLWsr/3f4bb586f0-fs/test/with-temp-dir.js`
 
 **Funções testadas:**
 
@@ -2026,6 +2031,107 @@ t.test('cleans up when provided function rejects', async (t) => {
 
 ---
 
+### get-options.js
+
+**Caminho original:** `/tmp/ctest-repos-XwoGto/3f4bb586f0-fs/test/common/get-options.js`
+
+**Funções testadas:**
+
+- `existsSync`
+
+*Arquivo de teste não disponível*
+
+---
+
+### node.js
+
+**Caminho original:** `/tmp/ctest-repos-XwoGto/3f4bb586f0-fs/test/common/node.js`
+
+**Funções testadas:**
+
+- `existsSync`
+
+*Arquivo de teste não disponível*
+
+---
+
+### errors.js
+
+**Caminho original:** `/tmp/ctest-repos-XwoGto/3f4bb586f0-fs/test/cp/errors.js`
+
+**Funções testadas:**
+
+- `existsSync`
+
+*Arquivo de teste não disponível*
+
+---
+
+### index.js
+
+**Caminho original:** `/tmp/ctest-repos-XwoGto/3f4bb586f0-fs/test/cp/index.js`
+
+**Funções testadas:**
+
+- `existsSync`
+
+*Arquivo de teste não disponível*
+
+---
+
+### polyfill.js
+
+**Caminho original:** `/tmp/ctest-repos-XwoGto/3f4bb586f0-fs/test/cp/polyfill.js`
+
+**Funções testadas:**
+
+- `existsSync`
+
+*Arquivo de teste não disponível*
+
+---
+
+### move-file.js
+
+**Caminho original:** `/tmp/ctest-repos-XwoGto/3f4bb586f0-fs/test/move-file.js`
+
+**Funções testadas:**
+
+- `existsSync`
+
+*Arquivo de teste não disponível*
+
+---
+
+### readdir-scoped.js
+
+**Caminho original:** `/tmp/ctest-repos-XwoGto/3f4bb586f0-fs/test/readdir-scoped.js`
+
+**Funções testadas:**
+
+- `existsSync`
+
+*Arquivo de teste não disponível*
+
+---
+
+### with-temp-dir.js
+
+**Caminho original:** `/tmp/ctest-repos-XwoGto/3f4bb586f0-fs/test/with-temp-dir.js`
+
+**Funções testadas:**
+
+- `existsSync`
+
+*Arquivo de teste não disponível*
+
+---
+
+
+## fs-constants@
+
+**Funções usados neste arquivo:** existsSync
+
 
 ## fs.realpath@
 
@@ -2033,7 +2139,7 @@ t.test('cleans up when provided function rejects', async (t) => {
 
 ### monkeypatching.js
 
-**Caminho original:** `/tmp/ctest-repos-z91GLV/76accba941-fs.realpath/test/monkeypatching.js`
+**Caminho original:** `/tmp/ctest-repos-3nLWsr/76accba941-fs.realpath/test/monkeypatching.js`
 
 **Funções testadas:**
 
@@ -2060,7 +2166,7 @@ t.notEqual(rp.realpathSync, fs.realpathSync)
 
 ### symlinks.js
 
-**Caminho original:** `/tmp/ctest-repos-z91GLV/76accba941-fs.realpath/test/symlinks.js`
+**Caminho original:** `/tmp/ctest-repos-3nLWsr/76accba941-fs.realpath/test/symlinks.js`
 
 **Funções testadas:**
 

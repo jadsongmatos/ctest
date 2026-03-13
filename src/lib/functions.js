@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { downloadRepos, installDependencies, cleanupRepos } = require('./repo-downloader');
-const { scanAllExternalTests } = require('./external-test-extractor');
-const { scanSourceFiles } = require('./source-analyzer');
+const { scanAllExternalTests, registerExternalComponentsFromComponents } = require('./external-test-extractor');
+const { scanSourceFiles, analyzeSourceFile } = require('./source-analyzer');
 const { generateSourceFileTestsMarkdown } = require('./external-test-extractor');
 
 /**
@@ -32,13 +32,86 @@ async function generateSourceTestsMarkdown(db, projectPath, options = {}) {
   let downloadInfo = null;
   if (shouldDownloadDeps) {
     console.log('\nFetching components with repo_url from database...');
-    const componentsWithRepo = await db.component.findMany({
-      where: { repo_url: { not: null } }
-    });
+    
+    let componentsToDownload = [];
+    
+    if (singleSourceFile) {
+      // Only download dependencies used in the specific source file
+      const sourceFilePath = path.resolve(resolvedProjectPath, singleSourceFile);
+      if (fs.existsSync(sourceFilePath)) {
+        const libraryUsage = analyzeSourceFile(sourceFilePath);
+        const libraryNames = Object.keys(libraryUsage);
+        console.log(`  Found ${libraryNames.length} external libraries used in ${singleSourceFile}: ${libraryNames.join(', ')}`);
+        
+        // Get components that match the libraries used
+        for (const libName of libraryNames) {
+          const normalizedLibName = libName.replace(/^@/, '');
+          const simpleName = normalizedLibName.split('/').pop();
+          const scope = libName.startsWith('@') ? libName.split('/')[0] : null;
+          
+          // Find matching components
+          const components = await db.component.findMany({
+            where: {
+              OR: [
+                { name: libName },
+                { name: normalizedLibName },
+                { name: simpleName }
+              ],
+              repo_url: { not: null }
+            }
+          });
+          
+          // For scoped packages, also filter by repo_url containing the scope
+          if (scope && components.length > 1) {
+            const filtered = components.filter(c => 
+              c.repo_url && c.repo_url.includes(scope.replace('@', ''))
+            );
+            if (filtered.length > 0) {
+              componentsToDownload.push(...filtered);
+            }
+          } else {
+            componentsToDownload.push(...components);
+          }
+        }
+        
+        console.log(`  Will download ${componentsToDownload.length} components used in this file`);
+      }
+    } else {
+      // Download all components with repo_url (original behavior)
+      componentsToDownload = await db.component.findMany({
+        where: { repo_url: { not: null } }
+      });
+      console.log(`Found ${componentsToDownload.length} components with repo_url`);
+    }
 
-    if (componentsWithRepo.length > 0) {
-      console.log(`Found ${componentsWithRepo.length} components with repo_url`);
-      downloadInfo = downloadRepos(componentsWithRepo);
+    if (componentsToDownload.length > 0) {
+      // Add sparse checkout info for known monorepos
+      const componentsWithSparse = componentsToDownload.map(comp => {
+        let sparsePath = null;
+        
+        // Detect monorepos and specify package subdirectory
+        if (comp.repo_url.includes('github.com/prisma/prisma')) {
+          // Extract package path from repo_url if available
+          const pkgMatch = comp.repo_url.match(/packages\/([^#\s]+)/);
+          if (pkgMatch) {
+            const pkgName = pkgMatch[1];
+            sparsePath = `packages/${pkgName}`;
+            
+            // For Prisma client, also include the tests directory for this package
+            if (pkgName.includes('client')) {
+              // This will be handled by cloneRepo which adds tests directory
+              sparsePath = `packages/${pkgName}`;
+            }
+          } else {
+            // Default to packages directory for prisma
+            sparsePath = 'packages';
+          }
+        }
+        
+        return { ...comp, sparsePath };
+      });
+      
+      downloadInfo = await downloadRepos(componentsWithSparse);
 
       // Install dependencies for downloaded repos
       for (const [name, result] of Object.entries(downloadInfo.results)) {
@@ -54,6 +127,10 @@ async function generateSourceTestsMarkdown(db, projectPath, options = {}) {
   // Scan downloaded dependencies for test files
   if (downloadInfo?.results) {
     await scanAllExternalTests(db, downloadInfo);
+  } else {
+    // Register external components from component table even without download
+    console.log('\nRegistering external components from database...');
+    await registerExternalComponentsFromComponents(db);
   }
 
   // Generate markdown for source file(s)

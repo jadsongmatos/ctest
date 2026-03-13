@@ -155,6 +155,42 @@ async function scanAllExternalTests(db, downloadInfo) {
 }
 
 /**
+ * Registers external components from the component table that have repo_url
+ * but were not downloaded (no external tests available, but we can still show the component info)
+ * @param {Object} db - Database client instance
+ */
+async function registerExternalComponentsFromComponents(db) {
+  const components = await db.component.findMany({
+    where: { repo_url: { not: null } }
+  });
+
+  for (const comp of components) {
+    // Check if already registered as external component
+    const existing = await db.externalComponent.findUnique({
+      where: {
+        name_version: {
+          name: comp.name,
+          version: comp.version
+        }
+      }
+    });
+
+    if (!existing) {
+      // Register as external component without download path
+      await db.externalComponent.create({
+        data: {
+          name: comp.name,
+          version: comp.version,
+          repo_url: comp.repo_url,
+          downloadPath: null
+        }
+      });
+      console.log(`  Registered external component: ${comp.name}@${comp.version}`);
+    }
+  }
+}
+
+/**
  * Generates a markdown file with external tests for a specific source file
  * @param {Object} db - Database client instance (Prisma)
  * @param {string} sourceFilePath - Path to the source file
@@ -185,10 +221,11 @@ No external library functions found in this file.
     // Normalize library name for database lookup
     // Database stores names without @ scope and with various formats
     const normalizedLibName = libName.replace(/^@/, '');
-    const simpleName = normalizedLibName.split('/').pop(); // e.g., @libsql/client -> client
+    const simpleName = normalizedLibName.split('/').pop(); // e.g., @prisma/client -> client, @libsql/client -> client
+    const scope = libName.startsWith('@') ? libName.split('/')[0] : null; // e.g., @prisma, @libsql
 
-    // Get component from database using Prisma (try multiple matching strategies)
-    const components = await db.externalComponent.findMany({
+    // First try to get external components from database
+    let components = await db.externalComponent.findMany({
       where: {
         OR: [
           { name: libName },
@@ -198,6 +235,48 @@ No external library functions found in this file.
       }
     });
 
+    // If no external components found, try the component table
+    if (components.length === 0) {
+      // Build a more specific query based on whether there's a scope
+      const whereClause = scope
+        ? {
+            // For scoped packages like @prisma/client, look for:
+            // 1. Exact name match (client)
+            // 2. repo_url containing both scope and name
+            OR: [
+              { name: simpleName },
+              { repo_url: { contains: scope.replace('@', '') } }
+            ]
+          }
+        : {
+            // For non-scoped packages, simple name match
+            OR: [
+              { name: libName },
+              { name: simpleName },
+              { repo_url: { contains: `/${simpleName}` } }
+            ]
+          };
+
+      components = await db.component.findMany({
+        where: whereClause
+      });
+
+      // Filter further if we have a scope to find the most specific match
+      if (scope && components.length > 1) {
+        // Try to find the component whose repo_url contains the scope
+        const filtered = components.filter(c =>
+          c.repo_url && c.repo_url.includes(scope.replace('@', ''))
+        );
+        if (filtered.length > 0) {
+          components = filtered;
+        }
+      }
+
+      if (components.length > 0) {
+        console.log(`  Found ${components.length} component(s) for ${libName} in component table (no external tests)`);
+      }
+    }
+
     if (components.length > 0) {
       for (const comp of components) {
         // Get test files for this component using Prisma
@@ -205,19 +284,22 @@ No external library functions found in this file.
           where: { externalComponentId: comp.id }
         });
 
+        // Initialize component entry even if no test files found
+        if (!testsByComponent[comp.name]) {
+          testsByComponent[comp.name] = {
+            version: comp.version,
+            tests: {},
+            usedFunctions: new Set(),
+            hasExternalTests: testFiles.length > 0
+          };
+        }
+
+        // Add all functions from library usage
+        const allFuncs = [...(usage.functions || []), ...(Object.values(usage.members || {}).flat())];
+        allFuncs.forEach(fn => testsByComponent[comp.name].usedFunctions.add(fn));
+
+        // Add test files if they exist
         for (const test of testFiles) {
-          if (!testsByComponent[comp.name]) {
-            testsByComponent[comp.name] = {
-              version: comp.version,
-              tests: {},
-              usedFunctions: new Set()
-            };
-          }
-
-          // Add all functions from library usage
-          const allFuncs = [...(usage.functions || []), ...(Object.values(usage.members || {}).flat())];
-          allFuncs.forEach(fn => testsByComponent[comp.name].usedFunctions.add(fn));
-
           if (!testsByComponent[comp.name].tests[test.path]) {
             testsByComponent[comp.name].tests[test.path] = {
               id: test.id,
@@ -314,6 +396,7 @@ module.exports = {
   isTestFile,
   scanExternalTestFiles,
   scanAllExternalTests,
+  registerExternalComponentsFromComponents,
   generateSourceFileTestsMarkdown,
   TEST_PATTERNS
 };

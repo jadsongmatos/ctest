@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 const {
   generateSBOM,
   readSBOM,
@@ -52,10 +52,24 @@ function createFilteredProjectCopy(projectPath, workRoot) {
 
   try {
     // Use rsync to copy only relevant files (respects .gitignore implicitly by excluding common patterns)
-    execSync(`rsync -av --filter=':- .gitignore' ${excludeArgs.join(' ')} "${projectPath}/" "${filteredDir}/"`, {
+    // Using spawnSync instead of execSync to avoid shell injection vulnerabilities
+    const rsyncArgs = [
+      '-av',
+      `--filter=':- .gitignore'`,
+      ...excludeArgs,
+      `${projectPath}/`,
+      `${filteredDir}/`,
+    ];
+    const result = spawnSync('rsync', rsyncArgs, {
       stdio: 'pipe',
       timeout: 60000, // 1 minute timeout
     });
+    if (result.error) {
+      throw result.error;
+    }
+    if (result.status !== 0) {
+      throw new Error(`rsync exited with code ${result.status}`);
+    }
   } catch (error) {
     // Fallback: simple copy if rsync fails
     console.warn('rsync failed, using fallback copy method...');
@@ -145,17 +159,34 @@ async function analyze(projectPath, options = {}) {
     });
   }
 
-  const workRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-work-'));
-  const projectIndexDir = path.join(workRoot, 'index-project-files');
-  const libsIndexDir = path.join(workRoot, 'index-libs-files');
-  const libsLineIndexDir = path.join(workRoot, 'index-libs-lines');
+  // Use download directory for Horsebox indexes if available, otherwise use temp directory
+  const workRoot = downloadInfo.downloadRoot
+    ? downloadInfo.downloadRoot
+    : fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-work-'));
+
+  const projectIndexDir = path.join(workRoot, '.horsebox', 'index-project-files');
+  const libsIndexDir = path.join(workRoot, '.horsebox', 'index-libs-files');
+  const libsLineIndexDir = path.join(workRoot, '.horsebox', 'index-libs-lines');
+
+  // Create index directories
+  fs.mkdirSync(projectIndexDir, { recursive: true });
+  fs.mkdirSync(libsIndexDir, { recursive: true });
+  fs.mkdirSync(libsLineIndexDir, { recursive: true });
 
   // Create filtered project copy to avoid indexing node_modules and other problematic directories
   console.log('Creating filtered project copy (excluding node_modules, ctest/, etc.)...');
-  const filteredProjectPath = createFilteredProjectCopy(resolvedProjectPath, workRoot);
+  const filteredProjectPath = createFilteredProjectCopy(resolvedProjectPath, path.join(workRoot, '.horsebox'));
 
   console.log('Building Horsebox index for project source files...');
-  buildFileContentIndex(filteredProjectPath, projectIndexDir);
+  // Check if project index already exists and has content
+  const projectIndexExists = fs.existsSync(projectIndexDir) && 
+    fs.readdirSync(projectIndexDir).length > 0;
+  
+  if (projectIndexExists) {
+    console.log('Project index already exists, skipping build...');
+  } else {
+    buildFileContentIndex(filteredProjectPath, projectIndexDir);
+  }
 
   if (downloadInfo.downloadRoot && fs.existsSync(downloadInfo.downloadRoot)) {
     // Check if any repositories were successfully downloaded
@@ -163,8 +194,23 @@ async function analyze(projectPath, options = {}) {
     if (successfulDownloads.length > 0) {
       console.log(`Building Horsebox index for ${successfulDownloads.length} downloaded dependencies...`);
       try {
-        buildFileContentIndex(downloadInfo.downloadRoot, libsIndexDir);
-        buildFileLineIndex(downloadInfo.downloadRoot, libsLineIndexDir);
+        // Check if lib indexes already exist and have content
+        const libsIndexExists = fs.existsSync(libsIndexDir) && 
+          fs.readdirSync(libsIndexDir).length > 0;
+        const libsLineIndexExists = fs.existsSync(libsLineIndexDir) && 
+          fs.readdirSync(libsLineIndexDir).length > 0;
+        
+        if (!libsIndexExists) {
+          buildFileContentIndex(downloadInfo.downloadRoot, libsIndexDir);
+        } else {
+          console.log('Libs filecontent index already exists, skipping build...');
+        }
+        
+        if (!libsLineIndexExists) {
+          buildFileLineIndex(downloadInfo.downloadRoot, libsLineIndexDir);
+        } else {
+          console.log('Libs fileline index already exists, skipping build...');
+        }
       } catch (error) {
         console.warn(`Warning: Failed to build index for dependencies: ${error.message}`);
         console.warn('Continuing without dependency tests...');

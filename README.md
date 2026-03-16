@@ -15,6 +15,7 @@ O Ctest analisa seu projeto npm para identificar quais funções de bibliotecas 
 - **Checklist Global**: Gera um arquivo `CTEST_CHECKLIST.md` para você controlar o progresso da revisão de cada arquivo analisado.
 - **Checklist por Arquivo**: Cada markdown gerado contém um checklist das bibliotecas detectadas.
 - **Persistent Cache**: As dependências baixadas são armazenadas em um cache local (`~/.ctest/repos`), evitando downloads repetidos.
+- **Índices Horsebox Persistente**: Os índices do Horsebox são armazenados em `<download-dir>/.horsebox/`, permitindo reutilização em execuções futuras.
 - **Filtro de Dependências Diretas**: Use `--direct-only` para ignorar dependências transitivas e focar no que importa.
 - **Auto-discovery de Repo**: Se o `repo_url` estiver faltando no SBOM, o Ctest tenta buscá-lo automaticamente no registro do npm.
 - **Normalização de URLs**: Converte automaticamente URLs de repositório `git+https` e `git:` para `https` compatível com GitHub.
@@ -79,7 +80,7 @@ node src/index.js .
 
 1. **SBOM & Discovery**: Gera um SBOM CycloneDX e normaliza as URLs dos repositórios. Se faltar a URL, consulta a API do npm.
 2. **Repository Cache**: Gerencia o download das dependências para um diretório persistente. Se já existir, pula o download.
-3. **Horsebox Indexing**: Cria índices temporários do seu projeto e das dependências baixadas.
+3. **Horsebox Indexing**: Cria índices persistentes em `<download-dir>/.horsebox/`. Se os índices já existirem, reutiliza para acelerar execuções futuras.
 4. **AST Analysis**: Varre seus arquivos `.js`, `.ts`, etc., identificando o uso exato de cada biblioteca externa.
 5. **Smart Search**: Para cada função ou cadeia detectada, o Ctest pergunta ao Horsebox onde isso aparece em arquivos de teste nas dependências.
 6. **Code Extraction**: Extrai os blocos `test()` e `it()` que contenham os termos buscados.

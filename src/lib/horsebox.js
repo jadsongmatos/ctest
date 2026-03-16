@@ -34,8 +34,15 @@ function buildFileLineIndex(fromDir, indexDir) {
   ]);
 }
 
+const searchCache = new Map();
+
 function searchIndex(indexDir, query, limit = 30) {
   if (!query || !query.trim()) return [];
+
+  const cacheKey = `${indexDir}:${query}:${limit}`;
+  if (searchCache.has(cacheKey)) {
+    return searchCache.get(cacheKey);
+  }
 
   const stdout = runHb([
     'search',
@@ -46,9 +53,15 @@ function searchIndex(indexDir, query, limit = 30) {
   ]);
 
   const parsed = JSON.parse(stdout);
-  if (Array.isArray(parsed)) return parsed;
-  if (Array.isArray(parsed.hits)) return parsed.hits;
-  return [];
+  let results = [];
+  if (Array.isArray(parsed)) {
+    results = parsed;
+  } else if (Array.isArray(parsed.hits)) {
+    results = parsed.hits;
+  }
+
+  searchCache.set(cacheKey, results);
+  return results;
 }
 
 module.exports = {

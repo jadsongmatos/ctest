@@ -12,7 +12,6 @@ const {
 } = require('../src/lib/sbom');
 const {
   downloadRepos,
-  cleanupRepos,
   parseRepoUrl,
 } = require('../src/lib/repo-downloader');
 const {
@@ -298,10 +297,6 @@ describe('Repo Downloader Integration', () => {
     expect(result).toBeDefined();
     expect(result.downloadRoot).toBeDefined();
     expect(result.results).toBeDefined();
-
-    if (result.downloadRoot) {
-      cleanupRepos(result.downloadRoot);
-    }
   }, 60000);
 
   it('should handle components without repo_url', async () => {
@@ -316,10 +311,6 @@ describe('Repo Downloader Integration', () => {
     const result = await downloadRepos(components);
     expect(result.results['test-pkg'].success).toBe(false);
     expect(result.results['test-pkg'].reason).toBe('no_repo_url');
-
-    if (result.downloadRoot) {
-      cleanupRepos(result.downloadRoot);
-    }
   });
 
   it('should use custom download directory when provided', async () => {
@@ -336,28 +327,9 @@ describe('Repo Downloader Integration', () => {
     expect(result.downloadRoot).toBe(customDir);
     expect(fs.existsSync(customDir)).toBe(true);
 
-    cleanupRepos(result.downloadRoot);
+    // Manual cleanup for custom dir in tests
+    fs.rmSync(customDir, { recursive: true, force: true });
   }, 60000);
-
-  it('should not cleanup when keepDownload is true', () => {
-    const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-keep-'));
-    const testFile = path.join(testDir, 'test.txt');
-    fs.writeFileSync(testFile, 'test');
-
-    cleanupRepos(testDir, true);
-    expect(fs.existsSync(testDir)).toBe(true);
-
-    fs.rmSync(testDir, { recursive: true, force: true });
-  });
-
-  it('should cleanup when keepDownload is false', () => {
-    const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-nokeep-'));
-    const testFile = path.join(testDir, 'test.txt');
-    fs.writeFileSync(testFile, 'test');
-
-    cleanupRepos(testDir, false);
-    expect(fs.existsSync(testDir)).toBe(false);
-  });
 });
 
 describe('Source Analyzer Integration', () => {
@@ -394,7 +366,7 @@ describe('Source Analyzer Integration', () => {
 
   it('should analyze source file with CommonJS requires', () => {
     const content = `
-      const { downloadRepos, cleanupRepos } = require('./lib/repo-downloader');
+      const { downloadRepos } = require('./lib/repo-downloader');
       const path = require('path');
       
       downloadRepos([]);
@@ -407,7 +379,6 @@ describe('Source Analyzer Integration', () => {
     expect(result).toBeDefined();
     expect(result['./lib/repo-downloader']).toBeDefined();
     expect(result['./lib/repo-downloader'].functions).toContain('downloadRepos');
-    expect(result['./lib/repo-downloader'].functions).toContain('cleanupRepos');
   });
 
   it('should detect member expression chains', () => {

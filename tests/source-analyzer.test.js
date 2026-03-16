@@ -225,6 +225,24 @@ describe('Source Analyzer Module', () => {
 
       fs.rmSync(testDir, { recursive: true, force: true });
     });
+
+    it('should exclude custom directories via excludeDirs', () => {
+      const testDir = path.join(__dirname, 'fixtures', 'scan-test-exclude');
+      
+      fs.mkdirSync(testDir, { recursive: true });
+      fs.writeFileSync(path.join(testDir, 'src.js'), 'console.log(1);');
+      const customDir = path.join(testDir, 'custom_modules');
+      fs.mkdirSync(customDir, { recursive: true });
+      fs.writeFileSync(path.join(customDir, 'dep.js'), 'console.log(2);');
+
+      const files = scanSourceFiles(testDir, { excludeDirs: ['custom_modules'] });
+
+      expect(files.length).toBe(1);
+      expect(files[0]).toContain('src.js');
+      expect(files.some(f => f.includes('custom_modules'))).toBe(false);
+
+      fs.rmSync(testDir, { recursive: true, force: true });
+    });
   });
 
   describe('parseGitIgnore', () => {

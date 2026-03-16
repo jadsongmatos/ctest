@@ -94,15 +94,28 @@ function collectTestFilesFromHorsebox(libsIndexDir, libsLineIndexDir, queries) {
   return [...paths];
 }
 
+function shortenPath(fullPath, projectRoot) {
+  if (!fullPath) return '';
+  let rel = projectRoot ? path.relative(projectRoot, fullPath) : fullPath;
+  // If the path starts with src/, optionally remove it or keep it depending on preference.
+  // The instruction "remover src" likely means the user wants to see 'lib/horsebox.js' instead of 'src/lib/horsebox.js'.
+  if (rel.startsWith('src' + path.sep)) {
+    rel = rel.slice(4);
+  }
+  return rel;
+}
+
 async function writeMarkdownForSource({
   sourceFile,
   usage,
   outputFile,
   libsIndexDir,
   libsLineIndexDir,
+  projectRoot,
 }) {
+  const shortSource = shortenPath(sourceFile, projectRoot);
   let md = `# External tests for ${path.basename(sourceFile)}\n\n`;
-  md += `**Arquivo:** \`${sourceFile}\`\n\n`;
+  md += `**Arquivo:** \`${shortSource}\`\n\n`;
 
   const libs = Object.entries(usage || {});
 
@@ -111,6 +124,13 @@ async function writeMarkdownForSource({
     fs.writeFileSync(outputFile, md, 'utf8');
     return;
   }
+
+  // Task: Add checklist
+  md += `## Checklist\n\n`;
+  for (const [libName] of libs) {
+    md += `- [ ] ${libName}\n`;
+  }
+  md += '\n';
 
   for (const [libName, libUsage] of libs) {
     md += `## ${libName}\n\n`;
@@ -134,7 +154,13 @@ async function writeMarkdownForSource({
       const blocks = extractRelevantBlocksFromFile(testFile, terms);
       if (blocks.length === 0) continue;
 
-      md += `### ${testFile}\n\n`;
+      // Use a shortened path for test files too if possible, 
+      // though they might be in a temporary download directory.
+      const displayPath = testFile.includes('ctest-work-') 
+        ? testFile.split(path.sep).slice(-3).join(path.sep) // e.g., "lib-name/tests/test.js"
+        : shortenPath(testFile, projectRoot);
+
+      md += `### ${displayPath}\n\n`;
 
       for (const block of blocks) {
         const key = `${testFile}::${block.title}::${block.code.length}`;
@@ -157,6 +183,10 @@ async function writeMarkdownForSource({
   fs.writeFileSync(outputFile, md, 'utf8');
 }
 
+
 module.exports = {
   writeMarkdownForSource,
+  buildQueriesForUsage,
+  buildTermList,
+  shortenPath,
 };

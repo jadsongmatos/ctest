@@ -292,12 +292,12 @@ function analyzeSourceFile(filePath) {
 }
 
 function scanSourceFiles(dir, options = {}) {
-  const { respectGitIgnore = true } = options;
+  const { respectGitIgnore = true, excludeDirs = [] } = options;
   const sourceFiles = [];
   const gitIgnorePatterns = respectGitIgnore ? getGitIgnorePatterns(dir) : [];
 
   // Directories that are always ignored regardless of .gitignore
-  const alwaysIgnoredDirs = ['node_modules', '.git', 'dist', 'build', 'coverage', 'test', 'tests', '__tests__'];
+  const alwaysIgnoredDirs = ['node_modules', '.git', 'dist', 'build', 'coverage', 'test', 'tests', '__tests__', ...excludeDirs];
 
   function scan(currentDir) {
     const entries = fs.readdirSync(currentDir, { withFileTypes: true });

@@ -26,16 +26,29 @@ async function fetchNpmPackageInfo(packageName) {
   });
 }
 
-async function createSBOMFromPackageLock(packageLock, fetchRepoUrls = false) {
+async function createSBOMFromPackageLock(packageLock, fetchRepoUrls = false, omitTransitive = false) {
   const components = [];
   const packageNames = [];
+
+  const directDependencies = new Set();
+  if (omitTransitive) {
+    // Try to find direct dependencies from root package
+    const rootPkg = packageLock.packages ? packageLock.packages[''] : null;
+    if (rootPkg && rootPkg.dependencies) {
+      Object.keys(rootPkg.dependencies).forEach(d => directDependencies.add(d));
+    }
+  }
 
   if (packageLock.packages) {
     for (const [pkgPath, pkg] of Object.entries(packageLock.packages)) {
       if (pkgPath === '') continue;
 
-      const name = pkg.name || pkgPath.replace('node_modules/', '').split('/node_modules/').pop();
+      // In lockfile v3, pkgPath is "node_modules/name"
+      const name = pkg.name || pkgPath.replace(/^node_modules\//, '').split('/node_modules/').pop();
       if (name && pkg.version) {
+        if (omitTransitive && !directDependencies.has(name)) {
+          continue;
+        }
         packageNames.push({ name, version: pkg.version, resolved: pkg.resolved });
       }
     }
@@ -87,27 +100,100 @@ async function createSBOMFromPackageLock(packageLock, fetchRepoUrls = false) {
   };
 }
 
-async function generateSBOM(projectPath, outputFile = 'sbom.cdx.json', fetchRepoUrls = false) {
+async function generateSBOM(projectPath, outputFile = 'sbom.cdx.json', fetchRepoUrls = false, omitTransitive = false) {
   const outputFilePath = path.resolve(projectPath, outputFile);
 
   try {
+    const omitArgs = omitTransitive ? '--omit dev --omit optional --omit peer' : '';
     execSync(
-      `npx @cyclonedx/cyclonedx-npm --output-format JSON --output-file "${outputFilePath}"`,
+      `npx @cyclonedx/cyclonedx-npm ${omitArgs} --output-format JSON --output-file "${outputFilePath}"`,
       {
         cwd: projectPath,
         stdio: 'pipe',
         env: { ...process.env, FORCE_COLOR: '0' },
       }
     );
-  } catch {
+
+    let sbom = JSON.parse(fs.readFileSync(outputFilePath, 'utf8'));
+    
+    // Ensure components is an array
+    if (!sbom.components) sbom.components = [];
+
+    // Post-process to ensure only direct dependencies if omitTransitive is true
+    if (omitTransitive) {
+      const packageJsonPath = path.join(projectPath, 'package.json');
+      if (fs.existsSync(packageJsonPath)) {
+        const pkgJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+        const directDeps = new Set(Object.keys(pkgJson.dependencies || {}));
+        
+        // Filter existing components
+        if (sbom.components.length > 0) {
+          sbom.components = sbom.components.filter(c => directDeps.has(c.name));
+        }
+        
+        // If components is empty after filtering (or was already empty), 
+        // try to populate from dependencies graph or directDeps
+        if (sbom.components.length === 0 && directDeps.size > 0) {
+          // Fallback to manual creation for those direct deps since tool omitted them
+          const packageLockPath = path.join(projectPath, 'package-lock.json');
+          if (fs.existsSync(packageLockPath)) {
+            const packageLock = JSON.parse(fs.readFileSync(packageLockPath, 'utf8'));
+            const fallbackSBOM = await createSBOMFromPackageLock(packageLock, false, true);
+            sbom.components = fallbackSBOM.components;
+          } else {
+            // Last resort: just names
+            for (const name of directDeps) {
+              sbom.components.push({ type: 'library', name, version: 'unknown' });
+            }
+          }
+        }
+      }
+    }
+
+    // Always ensure components have repo URLs if fetchRepoUrls is true
+    if (fetchRepoUrls && sbom.components && sbom.components.length > 0) {
+      for (const component of sbom.components) {
+        // Check if it already has a repo URL
+        let hasRepo = false;
+        if (component.externalReferences) {
+          hasRepo = component.externalReferences.some(ref => ref.type === 'vcs');
+        }
+        if (!hasRepo && component.repository && component.repository.url) {
+          hasRepo = true;
+        }
+
+        if (!hasRepo) {
+          const pkgInfo = await fetchNpmPackageInfo(component.name);
+          if (pkgInfo) {
+            let repoUrl = null;
+            if (typeof pkgInfo.repository === 'string') {
+              repoUrl = pkgInfo.repository;
+            } else if (pkgInfo.repository && pkgInfo.repository.url) {
+              repoUrl = pkgInfo.repository.url;
+            } else if (pkgInfo.homepage) {
+              repoUrl = pkgInfo.homepage;
+            }
+
+            if (repoUrl) {
+              if (!component.externalReferences) component.externalReferences = [];
+              component.externalReferences.push({ type: 'vcs', url: repoUrl });
+            }
+          }
+        }
+      }
+    }
+    
+    fs.writeFileSync(outputFilePath, JSON.stringify(sbom, null, 2));
+
+  } catch (error) {
     const packageLockPath = path.join(projectPath, 'package-lock.json');
 
     if (!fs.existsSync(packageLockPath)) {
-      throw new Error(`SBOM generation failed and no package-lock.json found at ${projectPath}`);
+      throw new Error(`SBOM generation failed and no package-lock.json found at ${projectPath}: ${error.message}`);
     }
 
     const packageLock = JSON.parse(fs.readFileSync(packageLockPath, 'utf8'));
-    const minimalSBOM = await createSBOMFromPackageLock(packageLock, fetchRepoUrls);
+    const minimalSBOM = await createSBOMFromPackageLock(packageLock, fetchRepoUrls, omitTransitive);
     fs.writeFileSync(outputFilePath, JSON.stringify(minimalSBOM, null, 2));
   }
 
@@ -135,6 +221,9 @@ function extractComponents(sbom) {
 
     if (repoUrl && repoUrl.includes('github.com')) {
       repoUrl = repoUrl.replace(/\.git$/, '');
+      if (!repoUrl.startsWith('http')) {
+        repoUrl = repoUrl.replace(/^git\+/, '').replace(/^git:/, 'https:');
+      }
     }
 
     return {

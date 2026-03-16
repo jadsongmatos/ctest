@@ -31,9 +31,21 @@ function safeReadFile(filePath) {
   }
 }
 
+const os = require('os');
+
+function getCacheDir() {
+  const homeDir = os.homedir();
+  const cacheDir = path.join(homeDir, '.ctest', 'repos');
+  if (!fs.existsSync(cacheDir)) {
+    fs.mkdirSync(cacheDir, { recursive: true });
+  }
+  return cacheDir;
+}
+
 module.exports = {
   uniq,
   normalizeLibraryNames,
   isTestFile,
   safeReadFile,
+  getCacheDir,
 };

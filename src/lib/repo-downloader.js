@@ -79,10 +79,13 @@ async function cloneRepo(gitUrl, ref, destDir) {
   return result.success;
 }
 
+const { getCacheDir } = require('./utils');
+
 async function downloadRepos(components, options = {}) {
   const results = {};
-  const downloadRoot = options.baseDir || fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-repos-'));
+  const downloadRoot = options.baseDir || getCacheDir();
   let successCount = 0;
+  let skippedCount = 0;
   let failCount = 0;
 
   for (const component of components) {
@@ -104,6 +107,18 @@ async function downloadRepos(components, options = {}) {
     const { gitUrl, ref } = parsed;
     const destDir = path.join(downloadRoot, `${hash(name)}-${name.replace(/[\\/]/g, '_')}`);
 
+    if (fs.existsSync(destDir)) {
+      skippedCount++;
+      results[name] = {
+        success: true,
+        path: destDir,
+        repo: gitUrl,
+        identifier: getRepoIdentifier(gitUrl),
+        cached: true,
+      };
+      continue;
+    }
+
     const success = await cloneRepo(gitUrl, ref, destDir);
     if (success) {
       successCount++;
@@ -118,21 +133,12 @@ async function downloadRepos(components, options = {}) {
     };
   }
 
-  console.log(`Downloaded ${successCount}/${components.length} dependencies successfully (${failCount} failed)`);
+  console.log(`Summary: ${successCount} new, ${skippedCount} cached, ${failCount} failed.`);
   return { results, downloadRoot };
-}
-
-function cleanupRepos(downloadRoot, keepDownload = false) {
-  if (keepDownload) {
-    return;
-  }
-  if (downloadRoot && fs.existsSync(downloadRoot)) {
-    fs.rmSync(downloadRoot, { recursive: true, force: true });
-  }
 }
 
 module.exports = {
   downloadRepos,
-  cleanupRepos,
   parseRepoUrl,
 };
+

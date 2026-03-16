@@ -31,6 +31,9 @@
     "testMatch": [
       "**/tests/**/*.test.js"
     ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/src_modules/"
+    ],
     "coverageDirectory": "coverage",
     "collectCoverageFrom": [
       "src/**/*.js"

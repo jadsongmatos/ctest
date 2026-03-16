@@ -3,14 +3,8 @@
 Ctest é uma ferramenta de linha de comando que analisa projetos npm e gera arquivos markdown com testes das dependências externas para cada arquivo de código-fonte, usando **Horsebox** como mecanismo de busca de código.
 
 [![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=jadsongmatos_ctest)](https://sonarcloud.io/summary/new_code?id=jadsongmatos_ctest)
-
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=jadsongmatos_ctest&metric=coverage)](https://sonarcloud.io/summary/new_code?id=jadsongmatos_ctest)
-
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=jadsongmatos_ctest&metric=bugs)](https://sonarcloud.io/summary/new_code?id=jadsongmatos_ctest)
-
-[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=jadsongmatos_ctest&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=jadsongmatos_ctest)
-
-[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=jadsongmatos_ctest&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=jadsongmatos_ctest)
 
 ## Visão Geral
 
@@ -18,15 +12,14 @@ O Ctest analisa seu projeto npm para identificar quais funções de bibliotecas 
 
 ## Recursos
 
-- Gera um SBOM CycloneDX para projetos npm
-- Baixa código fonte de dependências usando `repo_url`
-- Indexa **todo o código do projeto** e **das dependências** com Horsebox
-- Analisa o código-fonte do projeto para identificar funções de libs externas usadas
-- Detecta **cadeias de member expressions** (ex: `prisma.component.upsert`)
-- Rastreia **instâncias de classes importadas** (ex: `new PrismaClient()`)
-- Pergunta ao Horsebox **onde cada função apareceu nas dependências**
-- Filtra resultados para **arquivos de teste**
-- Copia **todos os blocos `test()` / `it()` relevantes** para o `.md`
+- **Checklist Global**: Gera um arquivo `CTEST_CHECKLIST.md` para você controlar o progresso da revisão de cada arquivo analisado.
+- **Checklist por Arquivo**: Cada markdown gerado contém um checklist das bibliotecas detectadas.
+- **Persistent Cache**: As dependências baixadas são armazenadas em um cache local (`~/.ctest/repos`), evitando downloads repetidos.
+- **Filtro de Dependências Diretas**: Use `--direct-only` para ignorar dependências transitivas e focar no que importa.
+- **Auto-discovery de Repo**: Se o `repo_url` estiver faltando no SBOM, o Ctest tenta buscá-lo automaticamente no registro do npm.
+- **Normalização de URLs**: Converte automaticamente URLs de repositório `git+https` e `git:` para `https` compatível com GitHub.
+- **Horsebox Integration**: Indexa o projeto e dependências com Horsebox para buscas ultrarrápidas de trechos de código.
+- **AST Analysis**: Detecta funções, membros e cadeias de chamadas (ex: `prisma.user.findUnique`) usando parser do Babel.
 
 ## Dependências Externas
 
@@ -52,10 +45,10 @@ Analise um projeto npm e gere arquivos markdown com testes externos:
 
 ```bash
 # Com download de dependências (recomendado para resultados completos)
-node src/index.js /caminho/para/projeto --download-dependencies
+node src/index.js . --download-dependencies --direct-only
 
-# Sem download (usa apenas código já disponível)
-node src/index.js /caminho/para/projeto
+# Analisar um arquivo específico
+node src/index.js . --file=src/lib/utils.js --download-dependencies
 ```
 
 ## Uso
@@ -64,109 +57,34 @@ node src/index.js /caminho/para/projeto
 
 | Opção | Descrição |
 |-------|-----------|
-| `<project-path>` | Caminho para o projeto npm a ser analisado (obrigatório) |
-| `--download-dependencies` | Baixar código fonte das dependências com `repo_url` |
-| `--max-downloads=<n>` | Número máximo de dependências para baixar (padrão: -1 = sem limite) |
-| `--file=<arquivo>` | Gerar markdown para um único arquivo fonte |
-| `--respect-gitignore=<true|false>` | Respeitar regras do .gitignore (padrão: true) |
-| `--download-dir=<caminho>` | Diretório para baixar dependências (padrão: temp) |
-| `--keep-downloads` | Não remover dependências baixadas após análise |
-
-### Gerar arquivos markdown para todo o projeto
-
-```bash
-node src/index.js <projeto> --download-dependencies --max-downloads=10
-```
-
-### Gerar markdown para um único arquivo
-
-```bash
-node src/index.js <projeto> --download-dependencies --file=index.js
-```
+| `<project-path>` | Caminho para o projeto npm (padrão: `.`) |
+| `--download-dependencies` | Habilita o download/uso do cache de repositórios das dependências |
+| `--direct-only` | Analisa apenas dependências diretas listadas no `package.json` |
+| `--download-dir=<path>` | Muda o diretório de cache de repositórios (padrão: `~/.ctest/repos`) |
+| `--file=<arquivo>` | Analisa apenas um arquivo específico do projeto |
+| `--max-downloads=<n>` | Limita o número de novos downloads de dependências |
+| `--respect-gitignore=<true\|false>` | Respeita o `.gitignore` ao varrer o projeto (padrão: `true`) |
 
 ### Exemplos
 
 ```bash
-# Analisar projeto (sem download)
-node src/index.js /path/to/npm/project
+# Analisar apenas dependências diretas e salvar no diretório local 'deps'
+node src/index.js . --download-dependencies --direct-only --download-dir=deps
 
-# Analisar projeto (baixando todas as dependências com repo_url)
-node src/index.js /path/to/npm/project --download-dependencies
-
-# Analisar com limite de downloads (útil para projetos grandes)
-node src/index.js /path/to/npm/project --download-dependencies --max-downloads=5
-
-# Gerar markdown para um único arquivo
-node src/index.js /path/to/npm/project --download-dependencies --file=src/index.js
+# Analisar sem baixar nada (usa apenas o que já estiver no cache ou projeto)
+node src/index.js .
 ```
 
 ## Como Funciona
 
-1. **Gerar SBOM**: O Ctest usa `@cyclonedx/cyclonedx-npm` para gerar um SBOM CycloneDX
-2. **Extrair componentes**: Componentes com `repo_url` são identificados
-3. **Baixar dependências** (opcional): Código fonte é clonado via Git
-4. **Indexar com Horsebox**:
-   - Código do projeto → índice `filecontent`
-   - Código das dependências → índices `filecontent` + `fileline`
-5. **Analisar código fonte**: Cada arquivo é parseado com AST para identificar:
-   - Imports ES6 e CommonJS
-   - Member expressions em cadeia (ex: `prisma.component.upsert`)
-   - Instâncias de classes (ex: `new PrismaClient()`)
-6. **Buscar testes externos**: Para cada lib detectada:
-   - Constrói consultas baseadas nas funções usadas
-   - Query Horsebox nos índices das dependências
-   - Filtra apenas arquivos de teste
-7. **Extrair blocos de teste**: Abre arquivos de teste e extrai blocos `test()` / `it()` relevantes
-8. **Gerar Markdown**: Cria arquivo `.md` com todos os testes encontrados
-
-## Formato de Saída
-
-Para cada arquivo fonte (ex: `index.js`), um arquivo markdown é gerado (`index.js.md`):
-
-```markdown
-# External tests for index.js
-
-**Arquivo:** `/caminho/para/index.js`
-
-## @prisma/client
-
-**Consultas usadas no Horsebox:** `component.upsert`, `upsert`, `client upsert`
-
-**Arquivos de teste encontrados:** 141
-
-### /tmp/ctest-repos-xxx/prisma/packages/client/src/__tests__/integration/upsert.test.ts
-
-#### should upsert a record
-
-```ts
-it('should upsert a record', async () => {
-  const result = await prisma.component.upsert({
-    where: { id: 1 },
-    create: { name: 'test' },
-    update: { name: 'updated' }
-  });
-  expect(result.name).toBe('updated');
-});
-```
-
-### /tmp/ctest-repos-xxx/prisma/packages/client/src/__tests__/functional/upsert/basic.ts
-
-#### basic upsert functionality
-
-```ts
-test('basic upsert functionality', () => {
-  // ... conteúdo completo do teste ...
-});
-```
-
-## lodash
-
-**Consultas usadas no Horsebox:** `map`, `filter`, `capitalize`
-
-**Arquivos de teste encontrados:** 329
-
-### ...
-```
+1. **SBOM & Discovery**: Gera um SBOM CycloneDX e normaliza as URLs dos repositórios. Se faltar a URL, consulta a API do npm.
+2. **Repository Cache**: Gerencia o download das dependências para um diretório persistente. Se já existir, pula o download.
+3. **Horsebox Indexing**: Cria índices temporários do seu projeto e das dependências baixadas.
+4. **AST Analysis**: Varre seus arquivos `.js`, `.ts`, etc., identificando o uso exato de cada biblioteca externa.
+5. **Smart Search**: Para cada função ou cadeia detectada, o Ctest pergunta ao Horsebox onde isso aparece em arquivos de teste nas dependências.
+6. **Code Extraction**: Extrai os blocos `test()` e `it()` que contenham os termos buscados.
+7. **Markdown Generation**: Gera um `.md` para cada arquivo, com checklists de libs e os exemplos de código encontrados.
+8. **Checklist Global**: Cria o `CTEST_CHECKLIST.md` na raiz do projeto para você marcar o que já revisou.
 
 ## Uso Programático
 
@@ -174,84 +92,15 @@ test('basic upsert functionality', () => {
 const { analyze } = require('./src/index');
 
 async function main() {
-  const result = await analyze('/caminho/para/projeto', {
-    sbomPath: 'sbom.cdx.json',      // Caminho do SBOM (padrão: sbom.cdx.json)
-    sourceFile: 'index.js',         // Opcional: analisar único arquivo
-    downloadDependencies: true,     // Baixar dependências (padrão: false)
-    maxDownloads: -1,               // Máximo de dependências (padrão: -1 = sem limite)
-    respectGitIgnore: true,         // Respeitar .gitignore (padrão: true)
-    downloadDir: '/tmp/deps',       // Diretório para baixar dependências (padrão: temp)
-    keepDownloads: false,           // Manter dependências após análise (padrão: false)
+  const result = await analyze('.', {
+    downloadDependencies: true,
+    directOnly: true,
+    downloadDir: './my-cache'
   });
 
-  console.log(result);
-  // {
-  //   sbomPath: '/caminho/para/sbom.cdx.json',
-  //   generated: ['src/index.js.md', 'src/lib/utils.js.md', ...],
-  //   downloadRoot: '/tmp/ctest-repos-xxx'
-  // }
+  console.log(`Arquivos gerados: ${result.generated.length}`);
 }
 ```
-
-## Módulos
-
-### SBOM (`src/lib/sbom.js`)
-
-| Função | Descrição |
-|--------|-----------|
-| `generateSBOM(projectPath, outputFile, fetchRepoUrls)` | Gera SBOM CycloneDX |
-| `readSBOM(sbomPath)` | Lê e parseia arquivo SBOM |
-| `extractComponents(sbom)` | Extrai componentes do SBOM |
-| `createSBOMFromPackageLock(packageLock, fetchRepoUrls)` | Cria SBOM do package-lock.json |
-
-### Horsebox (`src/lib/horsebox.js`)
-
-| Função | Descrição |
-|--------|-----------|
-| `ensureHorsebox()` | Verifica se `hb` está instalado |
-| `buildFileContentIndex(fromDir, indexDir)` | Cria índice filecontent |
-| `buildFileLineIndex(fromDir, indexDir)` | Cria índice fileline |
-| `searchIndex(indexDir, query, limit)` | Busca no índice |
-
-### Source Analyzer (`src/lib/source-analyzer.js`)
-
-| Função | Descrição |
-|--------|-----------|
-| `analyzeSourceFile(filePath)` | Analisa arquivo fonte identificando uso de libs externas |
-| `scanSourceFiles(dir, options)` | Varre diretório por arquivos JS/TS |
-| `parseGitIgnore(dir)` | Lê e parseia arquivo .gitignore |
-| `patternToRegex(pattern)` | Converte padrão gitignore em regex |
-| `shouldIgnore(filePath, patterns, baseDir)` | Verifica se arquivo deve ser ignorado |
-
-### Test Extractor (`src/lib/test-extractor.js`)
-
-| Função | Descrição |
-|--------|-----------|
-| `extractTestBlocks(content)` | Extrai blocos `test()` / `it()` do código |
-| `extractRelevantBlocksFromFile(filePath, terms)` | Extrai blocos relevantes de um arquivo |
-
-### Markdown Generator (`src/lib/markdown-generator.js`)
-
-| Função | Descrição |
-|--------|-----------|
-| `writeMarkdownForSource(options)` | Gera arquivo markdown para um arquivo fonte |
-
-### Repo Downloader (`src/lib/repo-downloader.js`)
-
-| Função | Descrição |
-|--------|-----------|
-| `downloadRepos(components, options)` | Baixa repositórios das dependências |
-| `cleanupRepos(downloadRoot, keepDownload)` | Remove repositórios baixados (ou mantém se `keepDownload=true`) |
-| `parseRepoUrl(repoUrl, version)` | Parseia URL do repositório |
-
-### Utils (`src/lib/utils.js`)
-
-| Função | Descrição |
-|--------|-----------|
-| `uniq(items)` | Remove duplicatas |
-| `normalizeLibraryNames(libName)` | Gera variações de nome da lib |
-| `isTestFile(filePath)` | Verifica se arquivo é de teste |
-| `safeReadFile(filePath)` | Lê arquivo com tratamento de erro |
 
 ## Rodando Testes
 

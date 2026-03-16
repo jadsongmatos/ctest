@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { execSync } = require('child_process');
 const {
   generateSBOM,
   readSBOM,
@@ -10,7 +11,6 @@ const {
 } = require('./lib/sbom');
 const {
   downloadRepos,
-  cleanupRepos,
 } = require('./lib/repo-downloader');
 const {
   scanSourceFiles,
@@ -25,6 +25,77 @@ const {
   writeMarkdownForSource,
 } = require('./lib/markdown-generator');
 
+/**
+ * Creates a filtered copy of the project directory, excluding problematic folders
+ * to avoid Horsebox indexing errors.
+ */
+function createFilteredProjectCopy(projectPath, workRoot) {
+  const filteredDir = path.join(workRoot, 'filtered-project');
+  fs.mkdirSync(filteredDir, { recursive: true });
+
+  // Directories and patterns to exclude
+  const excludePatterns = [
+    'node_modules',
+    'ctest',
+    '.git',
+    'coverage',
+    'ref',
+    '.vscode',
+    '.idea',
+    '*.log',
+    '*.db',
+    '*.cdx.json',
+  ];
+
+  // Build rsync exclude arguments
+  const excludeArgs = excludePatterns.flatMap(pattern => ['--exclude', pattern]);
+
+  try {
+    // Use rsync to copy only relevant files (respects .gitignore implicitly by excluding common patterns)
+    execSync(`rsync -av --filter=':- .gitignore' ${excludeArgs.join(' ')} "${projectPath}/" "${filteredDir}/"`, {
+      stdio: 'pipe',
+      timeout: 60000, // 1 minute timeout
+    });
+  } catch (error) {
+    // Fallback: simple copy if rsync fails
+    console.warn('rsync failed, using fallback copy method...');
+    copyDirectoryRecursive(projectPath, filteredDir, excludePatterns);
+  }
+
+  return filteredDir;
+}
+
+/**
+ * Fallback recursive copy that excludes specified patterns
+ */
+function copyDirectoryRecursive(src, dst, excludePatterns) {
+  fs.mkdirSync(dst, { recursive: true });
+
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const dstPath = path.join(dst, entry.name);
+
+    // Skip excluded directories
+    if (excludePatterns.some(pattern => {
+      if (pattern.includes('*')) {
+        const regex = new RegExp('^' + pattern.replace('*', '.*') + '$');
+        return regex.test(entry.name);
+      }
+      return entry.name === pattern;
+    })) {
+      continue;
+    }
+
+    if (entry.isDirectory()) {
+      copyDirectoryRecursive(srcPath, dstPath, excludePatterns);
+    } else if (entry.isFile()) {
+      fs.copyFileSync(srcPath, dstPath);
+    }
+  }
+}
+
 async function analyze(projectPath, options = {}) {
   const {
     sbomPath = 'sbom.cdx.json',
@@ -33,7 +104,7 @@ async function analyze(projectPath, options = {}) {
     maxDownloads = -1,
     respectGitIgnore = true,
     downloadDir = null,
-    keepDownloads = false,
+    directOnly = false,
   } = options;
 
   const resolvedProjectPath = path.resolve(projectPath || process.cwd());
@@ -45,7 +116,7 @@ async function analyze(projectPath, options = {}) {
   ensureHorsebox();
 
   console.log('Generating SBOM...');
-  const generatedSbomPath = await generateSBOM(resolvedProjectPath, sbomPath, true);
+  const generatedSbomPath = await generateSBOM(resolvedProjectPath, sbomPath, true, directOnly);
 
   console.log('Reading SBOM...');
   const sbom = readSBOM(generatedSbomPath);
@@ -62,8 +133,15 @@ async function analyze(projectPath, options = {}) {
       ? `up to ${maxDownloads}`
       : 'all';
     console.log(`Downloading ${countDesc} dependency repositories...`);
+    
+    // Resolve downloadDir relative to projectPath if it's provided and relative
+    let resolvedDownloadDir = downloadDir;
+    if (downloadDir && !path.isAbsolute(downloadDir)) {
+      resolvedDownloadDir = path.resolve(resolvedProjectPath, downloadDir);
+    }
+
     downloadInfo = await downloadRepos(componentsToDownload, {
-      baseDir: downloadDir,
+      baseDir: resolvedDownloadDir,
     });
   }
 
@@ -72,8 +150,12 @@ async function analyze(projectPath, options = {}) {
   const libsIndexDir = path.join(workRoot, 'index-libs-files');
   const libsLineIndexDir = path.join(workRoot, 'index-libs-lines');
 
+  // Create filtered project copy to avoid indexing node_modules and other problematic directories
+  console.log('Creating filtered project copy (excluding node_modules, ctest/, etc.)...');
+  const filteredProjectPath = createFilteredProjectCopy(resolvedProjectPath, workRoot);
+
   console.log('Building Horsebox index for project source files...');
-  buildFileContentIndex(resolvedProjectPath, projectIndexDir);
+  buildFileContentIndex(filteredProjectPath, projectIndexDir);
 
   if (downloadInfo.downloadRoot && fs.existsSync(downloadInfo.downloadRoot)) {
     // Check if any repositories were successfully downloaded
@@ -92,9 +174,19 @@ async function analyze(projectPath, options = {}) {
     }
   }
 
+  // Determine directories to exclude from scanning (e.g., downloadDir if inside projectPath)
+  const excludeDirs = [];
+  if (downloadInfo.downloadRoot) {
+    const relDownloadPath = path.relative(resolvedProjectPath, downloadInfo.downloadRoot);
+    if (!relDownloadPath.startsWith('..') && !path.isAbsolute(relDownloadPath)) {
+      // It's inside the project
+      excludeDirs.push(relDownloadPath.split(path.sep)[0]);
+    }
+  }
+
   const sourceFiles = sourceFile
     ? [path.resolve(resolvedProjectPath, sourceFile)]
-    : scanSourceFiles(resolvedProjectPath, { respectGitIgnore });
+    : scanSourceFiles(resolvedProjectPath, { respectGitIgnore, excludeDirs });
 
   const generated = [];
 
@@ -115,13 +207,26 @@ async function analyze(projectPath, options = {}) {
       outputFile,
       libsIndexDir,
       libsLineIndexDir,
+      projectRoot: resolvedProjectPath,
     });
 
     generated.push(path.relative(resolvedProjectPath, outputFile));
   }
 
-  if (downloadInfo.downloadRoot) {
-    cleanupRepos(downloadInfo.downloadRoot, keepDownloads);
+  // Generate a global checklist for tracking progress
+  if (generated.length > 0) {
+    const checklistPath = path.join(resolvedProjectPath, 'CTEST_CHECKLIST.md');
+    let checklistMd = '# CTest Analysis Checklist\n\n';
+    checklistMd += `Generated on: ${new Date().toLocaleString()}\n\n`;
+    checklistMd += 'Use this file to track your progress reviewing the generated external tests.\n\n';
+    
+    for (const relPath of generated) {
+      // Create a relative link to the markdown file
+      checklistMd += `- [ ] [${relPath}](${relPath})\n`;
+    }
+
+    fs.writeFileSync(checklistPath, checklistMd, 'utf8');
+    console.log(`\nGlobal checklist created: ${path.relative(process.cwd(), checklistPath)}`);
   }
 
   return {
@@ -136,10 +241,10 @@ if (require.main === module) {
   const projectPath = args[0] || process.cwd();
   const fileArg = args.find(arg => arg.startsWith('--file='));
   const downloadFlag = args.includes('--download-dependencies');
+  const directOnlyFlag = args.includes('--direct-only');
   const maxDownloadsArg = args.find(arg => arg.startsWith('--max-downloads='));
   const respectGitIgnoreArg = args.find(arg => arg.startsWith('--respect-gitignore='));
   const downloadDirArg = args.find(arg => arg.startsWith('--download-dir='));
-  const keepDownloadsFlag = args.includes('--keep-downloads');
 
   // Default is true, only false if explicitly set to false
   let respectGitIgnore = true;
@@ -156,12 +261,12 @@ if (require.main === module) {
     maxDownloads: maxDownloadsArg ? parseInt(maxDownloadsArg.split('=')[1], 10) : -1,
     respectGitIgnore,
     downloadDir,
-    keepDownloads: keepDownloadsFlag,
+    directOnly: directOnlyFlag,
   })
     .then(result => {
       console.log(`\nDone. Generated ${result.generated.length} markdown files.`);
-      if (keepDownloadsFlag && result.downloadRoot) {
-        console.log(`Dependencies downloaded to: ${result.downloadRoot}`);
+      if (result.downloadRoot) {
+        console.log(`Dependencies available at: ${result.downloadRoot}`);
       }
     })
     .catch(error => {

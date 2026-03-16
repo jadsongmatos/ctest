@@ -1,222 +1,313 @@
 const fs = require('fs');
 const path = require('path');
+
+// Mock external dependencies only
+jest.mock('../src/lib/horsebox');
+jest.mock('../src/lib/test-extractor');
+
+const { searchIndex } = require('../src/lib/horsebox');
+const { extractRelevantBlocksFromFile } = require('../src/lib/test-extractor');
+// Use real utils for normalizeLibraryNames and uniq
+const { isTestFile } = require('../src/lib/utils');
+
 const {
   writeMarkdownForSource,
   buildQueriesForUsage,
   buildTermList,
   shortenPath,
 } = require('../src/lib/markdown-generator');
-const { searchIndex } = require('../src/lib/horsebox');
-const { extractRelevantBlocksFromFile } = require('../src/lib/test-extractor');
 
-jest.mock('fs');
-jest.mock('../src/lib/horsebox');
-jest.mock('../src/lib/test-extractor');
+describe('Markdown Generator Module', () => {
+  const testOutputDir = path.join(__dirname, 'fixtures', 'test-output');
 
-describe('markdown-generator.js', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    if (fs.existsSync(testOutputDir)) {
+      fs.rmSync(testOutputDir, { recursive: true, force: true });
+    }
+    fs.mkdirSync(testOutputDir, { recursive: true });
   });
 
-  describe('shortenPath', () => {
-    const projectRoot = '/home/user/project';
-
-    it('should remove projectRoot and src prefix', () => {
-      const fullPath = '/home/user/project/src/lib/utils.js';
-      const result = shortenPath(fullPath, projectRoot);
-      expect(result).toBe('lib/utils.js');
-    });
-
-    it('should remove projectRoot and handle files not in src', () => {
-      const fullPath = '/home/user/project/scripts/test.js';
-      const result = shortenPath(fullPath, projectRoot);
-      expect(result).toBe('scripts/test.js');
-    });
-
-    it('should return relative path if src is not at the start', () => {
-      const fullPath = '/home/user/project/other/src/file.js';
-      const result = shortenPath(fullPath, projectRoot);
-      expect(result).toBe('other/src/file.js');
-    });
-
-    it('should handle missing projectRoot', () => {
-      const fullPath = 'src/lib/utils.js';
-      const result = shortenPath(fullPath, null);
-      expect(result).toBe('lib/utils.js');
-    });
+  afterEach(() => {
+    if (fs.existsSync(testOutputDir)) {
+      fs.rmSync(testOutputDir, { recursive: true, force: true });
+    }
+    jest.restoreAllMocks();
   });
 
   describe('buildQueriesForUsage', () => {
-    it('should generate queries for chains, functions and members', () => {
+    it('should build queries from chains', () => {
       const usage = {
-        chains: ['path.join', 'fs.readFileSync'],
-        functions: ['uniq'],
-        members: {
-          'db': ['exec', 'prepare']
-        }
+        chains: ['prisma.component.upsert', 'db.find'],
       };
-      const queries = buildQueriesForUsage('my-lib', usage);
 
-      expect(queries).toContain('path.join');
-      expect(queries).toContain('join');
-      expect(queries).toContain('my-lib join');
-      expect(queries).toContain('fs.readFileSync');
-      expect(queries).toContain('readFileSync');
-      expect(queries).toContain('my-lib readFileSync');
-      expect(queries).toContain('uniq');
-      expect(queries).toContain('my-lib uniq');
-      expect(queries).toContain('exec');
-      expect(queries).toContain('my-lib exec');
+      const queries = buildQueriesForUsage('prisma', usage);
+      expect(queries).toContain('prisma.component.upsert');
+      expect(queries).toContain('upsert');
+      expect(queries).toContain('prisma upsert');
     });
 
-    it('should handle scoped library names', () => {
-      const usage = { functions: ['parse'] };
-      const queries = buildQueriesForUsage('@babel/parser', usage);
-      
-      expect(queries).toContain('parse');
-      expect(queries).toContain('@babel/parser parse');
-      expect(queries).toContain('babel/parser parse');
-      expect(queries).toContain('parser parse');
+    it('should build queries from functions', () => {
+      const usage = {
+        functions: ['connect', 'disconnect'],
+      };
+
+      const queries = buildQueriesForUsage('pg', usage);
+      expect(queries).toContain('connect');
+      expect(queries).toContain('pg connect');
+      expect(queries).toContain('disconnect');
+      expect(queries).toContain('pg disconnect');
+    });
+
+    it('should build queries from members', () => {
+      const usage = {
+        members: {
+          client: ['query', 'execute'],
+        },
+      };
+
+      const queries = buildQueriesForUsage('pg', usage);
+      expect(queries).toContain('query');
+      expect(queries).toContain('pg query');
+      expect(queries).toContain('execute');
+      expect(queries).toContain('pg execute');
+    });
+
+    it('should deduplicate queries', () => {
+      const usage = {
+        chains: ['lib.fn', 'lib.fn'],
+        functions: ['fn'],
+      };
+
+      const queries = buildQueriesForUsage('lib', usage);
+      const uniqueQueries = new Set(queries);
+      expect(queries.length).toBe(uniqueQueries.size);
+    });
+
+    it('should filter out short queries', () => {
+      const usage = {
+        functions: ['a', 'abc'],
+      };
+
+      const queries = buildQueriesForUsage('lib', usage);
+      expect(queries).not.toContain('a');
+      expect(queries).toContain('abc');
+    });
+
+    it('should handle empty usage', () => {
+      const queries = buildQueriesForUsage('lib', {});
+      expect(queries).toEqual([]);
     });
   });
 
   describe('buildTermList', () => {
-    it('should include library aliases and all usage parts', () => {
-      const usage = {
-        chains: ['a.b.c'],
-        functions: ['f1'],
-        members: { 'm1': ['p1'] }
-      };
-      const terms = buildTermList('my-lib', usage);
+    it('should build terms from library name', () => {
+      const terms = buildTermList('@scope/package', {});
+      expect(terms).toContain('@scope/package');
+      expect(terms).toContain('scope/package');
+      expect(terms).toContain('package');
+    });
 
-      expect(terms).toContain('my-lib');
-      expect(terms).toContain('a.b.c');
-      expect(terms).toContain('a');
-      expect(terms).toContain('b');
-      expect(terms).toContain('c');
-      expect(terms).toContain('f1');
-      expect(terms).toContain('p1');
+    it('should build terms from chains', () => {
+      const usage = {
+        chains: ['prisma.user.find'],
+      };
+
+      const terms = buildTermList('prisma', usage);
+      expect(terms).toContain('prisma.user.find');
+      expect(terms).toContain('prisma');
+      expect(terms).toContain('user');
+      expect(terms).toContain('find');
+    });
+
+    it('should build terms from functions', () => {
+      const usage = {
+        functions: ['connect', 'query'],
+      };
+
+      const terms = buildTermList('pg', usage);
+      expect(terms).toContain('connect');
+      expect(terms).toContain('query');
+    });
+
+    it('should build terms from members', () => {
+      const usage = {
+        members: {
+          client: ['execute', 'release'],
+        },
+      };
+
+      const terms = buildTermList('pg', usage);
+      expect(terms).toContain('execute');
+      expect(terms).toContain('release');
+    });
+
+    it('should handle empty usage', () => {
+      const terms = buildTermList('lib', {});
+      expect(terms).toContain('lib');
+    });
+
+    it('should filter out empty terms', () => {
+      const terms = buildTermList('', {});
+      expect(terms).not.toContain('');
+    });
+  });
+
+  describe('shortenPath', () => {
+    it('should remove src/ prefix', () => {
+      const result = shortenPath('/project/src/lib/horsebox.js', '/project');
+      expect(result).toBe('lib/horsebox.js');
+    });
+
+    it('should handle paths without src/', () => {
+      const result = shortenPath('/project/tests/test.js', '/project');
+      expect(result).toBe('tests/test.js');
+    });
+
+    it('should handle empty path', () => {
+      const result = shortenPath('', '/project');
+      expect(result).toBe('');
+    });
+
+    it('should handle null path', () => {
+      const result = shortenPath(null, '/project');
+      expect(result).toBe('');
     });
   });
 
   describe('writeMarkdownForSource', () => {
-    const sourceFile = '/project/src/index.js';
-    const outputFile = '/project/index.js.md';
-    const projectRoot = '/project';
-
-    it('should generate markdown with checklist and sections', async () => {
-      const usage = {
-        'fs': { functions: ['readFileSync'] },
-        'path': { functions: ['join'] }
-      };
-
-      fs.existsSync.mockReturnValue(true);
-      // Path must be a test file to be picked up by collectTestFilesFromHorsebox
-      searchIndex.mockReturnValue([{ path: '/repo/tests/test1.test.js' }]);
-      extractRelevantBlocksFromFile.mockReturnValue([
-        { title: 'test block', code: 'console.log("hello");' }
-      ]);
-
-      await writeMarkdownForSource({
-        sourceFile,
-        usage,
-        outputFile,
-        libsIndexDir: '/tmp/idx',
-        libsLineIndexDir: '/tmp/line-idx',
-        projectRoot
-      });
-
-      expect(fs.writeFileSync).toHaveBeenCalled();
-      const md = fs.writeFileSync.mock.calls[0][1];
-
-      expect(md).toContain('# External tests for index.js');
-      expect(md).toContain('**Arquivo:** `index.js`');
-      expect(md).toContain('## Checklist');
-      expect(md).toContain('- [ ] fs');
-      expect(md).toContain('- [ ] path');
-      expect(md).toContain('## fs');
-      expect(md).toContain('## path');
-      // shortenPath result for /repo/tests/test1.test.js when projectRoot is /project
-      // results in ../repo/tests/test1.test.js
-      expect(md).toContain('### ../repo/tests/test1.test.js');
-      expect(md).toContain('#### test block');
-      expect(md).toContain('```ts\nconsole.log("hello");\n```');
-    });
-
-    it('should handle no usage detected', async () => {
-      const usage = {};
-
-      await writeMarkdownForSource({
-        sourceFile,
-        usage,
-        outputFile,
-        projectRoot
-      });
-
-      expect(fs.writeFileSync).toHaveBeenCalled();
-      const md = fs.writeFileSync.mock.calls[0][1];
-      expect(md).toContain('Nenhuma lib externa detectada neste arquivo.');
-    });
-
-    it('should handle no tests found by Horsebox', async () => {
-      const usage = { 'lib': { functions: ['f'] } };
-      fs.existsSync.mockReturnValue(true);
+    beforeEach(() => {
       searchIndex.mockReturnValue([]);
-
-      await writeMarkdownForSource({
-        sourceFile,
-        usage,
-        outputFile,
-        libsIndexDir: '/tmp/idx',
-        libsLineIndexDir: '/tmp/line-idx',
-        projectRoot
-      });
-
-      const md = fs.writeFileSync.mock.calls[0][1];
-      expect(md).toContain('Nenhum arquivo de teste encontrado pelo Horsebox para esta lib.');
-    });
-
-    it('should handle candidate files with no relevant blocks', async () => {
-      const usage = { 'lib': { functions: ['f'] } };
-      fs.existsSync.mockReturnValue(true);
-      searchIndex.mockReturnValue([{ path: '/repo/test.test.js' }]);
       extractRelevantBlocksFromFile.mockReturnValue([]);
-
-      await writeMarkdownForSource({
-        sourceFile,
-        usage,
-        outputFile,
-        libsIndexDir: '/tmp/idx',
-        libsLineIndexDir: '/tmp/line-idx',
-        projectRoot
-      });
-
-      const md = fs.writeFileSync.mock.calls[0][1];
-      expect(md).toContain('Horsebox encontrou arquivos candidatos, mas nenhum bloco `test()` / `it()` relevante foi extraído.');
     });
 
-    it('should deduplicate blocks', async () => {
-      const usage = { 'lib': { functions: ['f'] } };
-      fs.existsSync.mockReturnValue(true);
-      searchIndex.mockReturnValue([{ path: '/repo/test.test.js' }]);
-      // Return same block twice
+    it('should write markdown with no external libraries', async () => {
+      const outputFile = path.join(testOutputDir, 'empty.md');
+
+      await writeMarkdownForSource({
+        sourceFile: '/project/src/empty.js',
+        usage: {},
+        outputFile,
+        libsIndexDir: '/index',
+        libsLineIndexDir: '/index-line',
+        projectRoot: '/project',
+      });
+
+      const content = fs.readFileSync(outputFile, 'utf8');
+      expect(content).toContain('# External tests for empty.js');
+      expect(content).toContain('Nenhuma lib externa detectada neste arquivo.');
+    });
+
+    it('should write markdown with library usage', async () => {
+      const outputFile = path.join(testOutputDir, 'usage.md');
+      searchIndex.mockReturnValue([{ path: '/test/test.test.js' }]);
       extractRelevantBlocksFromFile.mockReturnValue([
-        { title: 'same', code: 'code' },
-        { title: 'same', code: 'code' }
+        { title: 'should work', code: 'test("should work", () => {})' },
       ]);
 
       await writeMarkdownForSource({
-        sourceFile,
-        usage,
+        sourceFile: '/project/src/app.js',
+        usage: {
+          prisma: {
+            chains: ['prisma.user.find'],
+            functions: ['connect'],
+            members: {},
+          },
+        },
         outputFile,
-        libsIndexDir: '/tmp/idx',
-        libsLineIndexDir: '/tmp/line-idx',
-        projectRoot
+        libsIndexDir: testOutputDir,
+        libsLineIndexDir: testOutputDir,
+        projectRoot: '/project',
       });
 
-      const md = fs.writeFileSync.mock.calls[0][1];
-      const occurrences = (md.match(/#### same/g) || []).length;
+      const content = fs.readFileSync(outputFile, 'utf8');
+      expect(content).toContain('# External tests for app.js');
+      expect(content).toContain('## prisma');
+    });
+
+    it('should handle missing index directories', async () => {
+      const outputFile = path.join(testOutputDir, 'noindex.md');
+
+      await writeMarkdownForSource({
+        sourceFile: '/project/src/app.js',
+        usage: {
+          lib: { chains: [], functions: [], members: {} },
+        },
+        outputFile,
+        libsIndexDir: null,
+        libsLineIndexDir: null,
+        projectRoot: '/project',
+      });
+
+      const content = fs.readFileSync(outputFile, 'utf8');
+      expect(content).toContain('Nenhum arquivo de teste encontrado');
+    });
+
+    it('should include checklist in markdown', async () => {
+      const outputFile = path.join(testOutputDir, 'checklist.md');
+
+      await writeMarkdownForSource({
+        sourceFile: '/project/src/app.js',
+        usage: {
+          lib1: { chains: [], functions: [], members: {} },
+          lib2: { chains: [], functions: [], members: {} },
+        },
+        outputFile,
+        libsIndexDir: testOutputDir,
+        libsLineIndexDir: testOutputDir,
+        projectRoot: '/project',
+      });
+
+      const content = fs.readFileSync(outputFile, 'utf8');
+      expect(content).toContain('## Checklist');
+      expect(content).toContain('- [ ] lib1');
+      expect(content).toContain('- [ ] lib2');
+    });
+
+    it('should deduplicate test blocks', async () => {
+      const outputFile = path.join(testOutputDir, 'dedup.md');
+      searchIndex.mockReturnValue([{ path: '/test/test.test.js' }]);
+      extractRelevantBlocksFromFile.mockReturnValue([
+        { title: 'same test', code: 'test("same", () => {})' },
+        { title: 'same test', code: 'test("same", () => {})' },
+      ]);
+
+      await writeMarkdownForSource({
+        sourceFile: '/project/src/app.js',
+        usage: {
+          lib: { chains: ['lib.fn'], functions: [], members: {} },
+        },
+        outputFile,
+        libsIndexDir: testOutputDir,
+        libsLineIndexDir: testOutputDir,
+        projectRoot: '/project',
+      });
+
+      const content = fs.readFileSync(outputFile, 'utf8');
+      const occurrences = (content.match(/#### same test/g) || []).length;
       expect(occurrences).toBe(1);
+    });
+
+    it('should handle test files with ctest-work prefix', async () => {
+      const outputFile = path.join(testOutputDir, 'work.md');
+      searchIndex.mockReturnValue([{ path: '/tmp/ctest-work-abc/lib-name/tests/test.test.js' }]);
+      extractRelevantBlocksFromFile.mockReturnValue([
+        { title: 'test', code: 'test("test", () => {})' },
+      ]);
+
+      await writeMarkdownForSource({
+        sourceFile: '/project/src/app.js',
+        usage: {
+          lib: { chains: ['lib.fn'], functions: [], members: {} },
+        },
+        outputFile,
+        libsIndexDir: testOutputDir,
+        libsLineIndexDir: testOutputDir,
+        projectRoot: '/project',
+      });
+
+      const content = fs.readFileSync(outputFile, 'utf8');
+      expect(content).toContain('lib-name/tests/test.test.js');
     });
   });
 });

@@ -160,22 +160,25 @@ async function analyze(projectPath, options = {}) {
   }
 
   // Use download directory for Horsebox indexes if available, otherwise use temp directory
-  const workRoot = downloadInfo.downloadRoot
+  const indexRoot = downloadInfo.downloadRoot
     ? downloadInfo.downloadRoot
     : fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-work-'));
 
-  const projectIndexDir = path.join(workRoot, '.horsebox', 'index-project-files');
-  const libsIndexDir = path.join(workRoot, '.horsebox', 'index-libs-files');
-  const libsLineIndexDir = path.join(workRoot, '.horsebox', 'index-libs-lines');
+  const projectIndexDir = path.join(indexRoot, '.horsebox', 'index-project-files');
+  const libsIndexDir = path.join(indexRoot, '.horsebox', 'index-libs-files');
+  const libsLineIndexDir = path.join(indexRoot, '.horsebox', 'index-libs-lines');
 
   // Create index directories
   fs.mkdirSync(projectIndexDir, { recursive: true });
   fs.mkdirSync(libsIndexDir, { recursive: true });
   fs.mkdirSync(libsLineIndexDir, { recursive: true });
 
+  // Use separate temp directory for filtered project copy to avoid recursive copy issues
+  const workRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-work-'));
+
   // Create filtered project copy to avoid indexing node_modules and other problematic directories
   console.log('Creating filtered project copy (excluding node_modules, ctest/, etc.)...');
-  const filteredProjectPath = createFilteredProjectCopy(resolvedProjectPath, path.join(workRoot, '.horsebox'));
+  const filteredProjectPath = createFilteredProjectCopy(resolvedProjectPath, workRoot);
 
   console.log('Building Horsebox index for project source files...');
   // Check if project index already exists and has content

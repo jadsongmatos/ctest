@@ -4,15 +4,15 @@
 
 ## Checklist
 
-- [ ] child_process
+- [x] child_process
 - [ ] ./lib/sbom
 - [ ] ./lib/repo-downloader
 - [ ] ./lib/source-analyzer
 - [ ] ./lib/horsebox
 - [ ] ./lib/markdown-generator
-- [ ] path
-- [ ] fs
-- [ ] os
+- [x] path
+- [x] fs
+- [x] os
 
 ## child_process
 

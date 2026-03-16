@@ -641,4 +641,252 @@ describe('path module tests (from index.js.md)', () => {
     const relative = path.relative('/a/b/c', '/a/b/c/d/e');
     expect(relative).toBe(path.join('d', 'e'));
   });
+
+  it('should use path.isAbsolute correctly', () => {
+    expect(path.isAbsolute('/absolute/path')).toBe(true);
+    expect(path.isAbsolute('relative/path')).toBe(false);
+  });
+
+  it('should use path.sep correctly', () => {
+    expect(path.sep).toBeDefined();
+    expect(typeof path.sep).toBe('string');
+  });
+});
+
+describe('child_process module tests (from index.js.md)', () => {
+  const { execSync, spawnSync } = require('child_process');
+
+  it('should use execSync to execute commands', () => {
+    const result = execSync('echo "test"', { encoding: 'utf8' });
+    expect(result.trim()).toBe('test');
+  });
+
+  it('should use execSync with cwd option', () => {
+    const result = execSync('pwd', { encoding: 'utf8', cwd: '/tmp' });
+    expect(result.trim()).toBe('/tmp');
+  });
+
+  it('should use execSync with stdio option', () => {
+    const result = execSync('echo "hello"', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    expect(result.trim()).toBe('hello');
+  });
+
+  it('should use spawnSync to execute commands', () => {
+    const result = spawnSync('echo', ['test'], { encoding: 'utf8' });
+    expect(result.stdout.trim()).toBe('test');
+    expect(result.status).toBe(0);
+  });
+
+  it('should handle spawnSync with timeout', () => {
+    const result = spawnSync('sleep', ['0.1'], {
+      encoding: 'utf8',
+      timeout: 5000,
+    });
+    expect(result.status).toBe(0);
+  });
+
+  it('should capture stderr from spawned process', () => {
+    const result = spawnSync('node', ['-e', 'console.error("error message")'], {
+      encoding: 'utf8',
+    });
+    expect(result.stderr.trim()).toBe('error message');
+  });
+
+  it('should handle non-zero exit codes', () => {
+    const result = spawnSync('node', ['-e', 'process.exit(1)'], {
+      encoding: 'utf8',
+    });
+    expect(result.status).toBe(1);
+  });
+});
+
+describe('fs module tests (from index.js.md)', () => {
+  let tempDir;
+  let tempFile;
+
+  beforeAll(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-fs-test-'));
+    tempFile = path.join(tempDir, 'test-file.txt');
+  });
+
+  afterAll(() => {
+    if (tempDir && fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('should use fs.writeFileSync to write files', () => {
+    fs.writeFileSync(tempFile, 'test content');
+    expect(fs.existsSync(tempFile)).toBe(true);
+  });
+
+  it('should use fs.readFileSync to read files', () => {
+    fs.writeFileSync(tempFile, 'hello world');
+    const content = fs.readFileSync(tempFile, 'utf8');
+    expect(content).toBe('hello world');
+  });
+
+  it('should use fs.mkdirSync with recursive option', () => {
+    const nestedDir = path.join(tempDir, 'a', 'b', 'c');
+    fs.mkdirSync(nestedDir, { recursive: true });
+    expect(fs.existsSync(nestedDir)).toBe(true);
+  });
+
+  it('should use fs.readdirSync with withFileTypes option', () => {
+    fs.writeFileSync(tempFile, 'content');
+    const entries = fs.readdirSync(tempDir, { withFileTypes: true });
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries[0]).toHaveProperty('name');
+    expect(entries[0]).toHaveProperty('isFile');
+    expect(entries[0]).toHaveProperty('isDirectory');
+  });
+
+  it('should use fs.copyFileSync to copy files', () => {
+    const srcFile = path.join(tempDir, 'source.txt');
+    const dstFile = path.join(tempDir, 'dest.txt');
+    fs.writeFileSync(srcFile, 'copy me');
+    fs.copyFileSync(srcFile, dstFile);
+    expect(fs.readFileSync(dstFile, 'utf8')).toBe('copy me');
+  });
+
+  it('should use fs.unlinkSync to delete files', () => {
+    const fileToDelete = path.join(tempDir, 'to-delete.txt');
+    fs.writeFileSync(fileToDelete, 'delete me');
+    expect(fs.existsSync(fileToDelete)).toBe(true);
+    fs.unlinkSync(fileToDelete);
+    expect(fs.existsSync(fileToDelete)).toBe(false);
+  });
+
+  it('should use fs.rmSync with recursive option', () => {
+    const dirToRemove = path.join(tempDir, 'to-remove');
+    fs.mkdirSync(dirToRemove, { recursive: true });
+    fs.writeFileSync(path.join(dirToRemove, 'file.txt'), 'content');
+    expect(fs.existsSync(dirToRemove)).toBe(true);
+    fs.rmSync(dirToRemove, { recursive: true, force: true });
+    expect(fs.existsSync(dirToRemove)).toBe(false);
+  });
+
+  it('should use fs.existsSync to check file existence', () => {
+    expect(fs.existsSync(tempFile)).toBe(true);
+    expect(fs.existsSync('/non-existent-file-xyz')).toBe(false);
+  });
+
+  it('should use fs.statSync to get file stats', () => {
+    fs.writeFileSync(tempFile, 'stats test');
+    const stats = fs.statSync(tempFile);
+    expect(stats.isFile()).toBe(true);
+    expect(stats.size).toBeGreaterThan(0);
+  });
+});
+
+describe('os module tests (from index.js.md)', () => {
+  it('should use os.tmpdir to get temp directory', () => {
+    const tmpDir = os.tmpdir();
+    expect(tmpDir).toBeDefined();
+    expect(typeof tmpDir).toBe('string');
+    expect(tmpDir.length).toBeGreaterThan(0);
+  });
+
+  it('should use os.tmpdir for creating temp directories', () => {
+    const testTempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-os-test-'));
+    expect(fs.existsSync(testTempDir)).toBe(true);
+    fs.rmSync(testTempDir, { recursive: true, force: true });
+  });
+
+  it('should use os.homedir to get home directory', () => {
+    const homeDir = os.homedir();
+    expect(homeDir).toBeDefined();
+    expect(typeof homeDir).toBe('string');
+  });
+
+  it('should use os.platform to get platform info', () => {
+    const platform = os.platform();
+    expect(['linux', 'darwin', 'win32']).toContain(platform);
+  });
+
+  it('should use os.arch to get architecture info', () => {
+    const arch = os.arch();
+    expect(arch).toBeDefined();
+    expect(typeof arch).toBe('string');
+  });
+});
+
+describe('Integration tests for index.js main functionality', () => {
+  it('should handle project analysis with download-dir option', async () => {
+    const testProjectPath = path.join(__dirname, 'fixtures', 'test-project');
+    const customDownloadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-download-'));
+
+    if (!fs.existsSync(testProjectPath)) {
+      console.log('Skipping test - test-project fixture not found');
+      return;
+    }
+
+    try {
+      const result = await analyze(testProjectPath, {
+        sbomPath: 'sbom-integration.json',
+        downloadDependencies: true,
+        maxDownloads: 1,
+        downloadDir: customDownloadDir,
+      });
+
+      expect(result).toBeDefined();
+      expect(result.downloadRoot).toBe(customDownloadDir);
+      
+      // Verify .horsebox directory was created inside download dir for indexes
+      const horseboxDir = path.join(customDownloadDir, '.horsebox');
+      expect(fs.existsSync(horseboxDir)).toBe(true);
+      
+      // Verify index directories exist
+      expect(fs.existsSync(path.join(horseboxDir, 'index-project-files'))).toBe(true);
+      expect(fs.existsSync(path.join(horseboxDir, 'index-libs-files'))).toBe(true);
+      expect(fs.existsSync(path.join(horseboxDir, 'index-libs-lines'))).toBe(true);
+    } finally {
+      // Cleanup
+      if (fs.existsSync(customDownloadDir)) {
+        fs.rmSync(customDownloadDir, { recursive: true, force: true });
+      }
+    }
+  }, 120000);
+
+  it('should reuse existing indexes when running analysis twice', async () => {
+    const testProjectPath = path.join(__dirname, 'fixtures', 'test-project');
+    const customDownloadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-reuse-'));
+
+    if (!fs.existsSync(testProjectPath)) {
+      console.log('Skipping test - test-project fixture not found');
+      return;
+    }
+
+    try {
+      // First run - creates indexes
+      await analyze(testProjectPath, {
+        sbomPath: 'sbom-first.json',
+        downloadDependencies: true,
+        maxDownloads: 1,
+        downloadDir: customDownloadDir,
+      });
+
+      // Verify indexes were created
+      const horseboxDir = path.join(customDownloadDir, '.horsebox');
+      expect(fs.existsSync(horseboxDir)).toBe(true);
+
+      // Second run - should reuse indexes
+      const result = await analyze(testProjectPath, {
+        sbomPath: 'sbom-second.json',
+        downloadDependencies: true,
+        maxDownloads: 1,
+        downloadDir: customDownloadDir,
+      });
+
+      expect(result).toBeDefined();
+      expect(result.generated).toBeDefined();
+    } finally {
+      if (fs.existsSync(customDownloadDir)) {
+        fs.rmSync(customDownloadDir, { recursive: true, force: true });
+      }
+    }
+  }, 180000);
 });

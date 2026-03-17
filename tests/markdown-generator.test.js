@@ -25,7 +25,8 @@ describe('Markdown Generator Module', () => {
     if (fs.existsSync(testOutputDir)) {
       fs.rmSync(testOutputDir, { recursive: true, force: true });
     }
-    fs.mkdirSync(testOutputDir, { recursive: true });
+    // Use restrictive permissions (owner-only) to avoid security issues with world-writable directories
+    fs.mkdirSync(testOutputDir, { recursive: true, mode: 0o700 });
   });
 
   afterEach(() => {

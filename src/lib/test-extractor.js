@@ -1,6 +1,6 @@
 const { safeReadFile } = require('./utils');
 
-function findMatchingBrace(code, openIndex) {
+function findMatchingBrace (code, openIndex) {
   let depth = 0;
   let quote = null;
   let escaped = false;
@@ -19,21 +19,21 @@ function findMatchingBrace(code, openIndex) {
       continue;
     }
 
-    if (ch === '"' || ch === "'" || ch === '`') {
+    if (ch === '"' || ch === '\'' || ch === '`') {
       quote = ch;
       continue;
     }
 
-    if (ch === '{') depth++;
-    if (ch === '}') depth--;
+    if (ch === '{') { depth++; }
+    if (ch === '}') { depth--; }
 
-    if (depth === 0) return i;
+    if (depth === 0) { return i; }
   }
 
   return -1;
 }
 
-function extractTestBlocks(content) {
+function extractTestBlocks (content) {
   const blocks = [];
   const re = /\b(?:test|it)\s*\(\s*(['"`])([\s\S]*?)\1\s*,[\s\S]*?\{/g;
 
@@ -43,16 +43,16 @@ function extractTestBlocks(content) {
     const start = match.index;
     const braceStart = content.indexOf('{', re.lastIndex - 1);
 
-    if (braceStart === -1) continue;
+    if (braceStart === -1) { continue; }
 
     const braceEnd = findMatchingBrace(content, braceStart);
-    if (braceEnd === -1) continue;
+    if (braceEnd === -1) { continue; }
 
     const code = content.slice(start, braceEnd + 1);
 
     blocks.push({
       title,
-      code,
+      code
     });
 
     re.lastIndex = braceEnd + 1;
@@ -61,14 +61,14 @@ function extractTestBlocks(content) {
   return blocks;
 }
 
-function blockMatchesTerms(blockCode, terms) {
+function blockMatchesTerms (blockCode, terms) {
   const lower = blockCode.toLowerCase();
   return terms.some(term => lower.includes(term.toLowerCase()));
 }
 
-function extractRelevantBlocksFromFile(filePath, terms) {
+function extractRelevantBlocksFromFile (filePath, terms) {
   const content = safeReadFile(filePath);
-  if (!content) return [];
+  if (!content) { return []; }
 
   const blocks = extractTestBlocks(content);
   return blocks.filter(block => blockMatchesTerms(block.code, terms));
@@ -76,5 +76,5 @@ function extractRelevantBlocksFromFile(filePath, terms) {
 
 module.exports = {
   extractTestBlocks,
-  extractRelevantBlocksFromFile,
+  extractRelevantBlocksFromFile
 };

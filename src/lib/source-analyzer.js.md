@@ -12,7 +12,7 @@
 
 **Consultas usadas no Horsebox:** `join`, `path join`, `relative`, `path relative`
 
-**Arquivos de teste encontrados:** 252
+**Arquivos de teste encontrados:** 250
 
 ### src_modules/cc6b13a61c-@babel_parser/packages/babel-code-frame/test/index.js
 

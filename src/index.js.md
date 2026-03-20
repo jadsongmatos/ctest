@@ -4,102 +4,23 @@
 
 ## Checklist
 
-- [x] child_process
+- [ ] child_process
 - [ ] ./lib/sbom
 - [ ] ./lib/repo-downloader
 - [ ] ./lib/source-analyzer
 - [ ] ./lib/horsebox
 - [ ] ./lib/markdown-generator
-- [x] path
-- [x] fs
-- [x] os
+- [ ] path
+- [ ] fs
+- [ ] os
 
 ## child_process
 
-**Consultas usadas no Horsebox:** `execSync`, `child_process execSync`
+**Consultas usadas no Horsebox:** `spawnSync`, `child_process spawnSync`
 
-**Arquivos de teste encontrados:** 71
+**Arquivos de teste encontrados:** 76
 
-### src_modules/cc6b13a61c-@babel_parser/test/runtime-integration/node.cjs
-
-#### ESM
-
-```ts
-test("ESM", "./src/main-esm.mjs", expectedEsm);
-  // TODO: This never worked in any Babel version
-  // test("ESM - absoluteRuntime", "--experimental-modules ./src/absolute/main-esm.mjs", "expected-esm-absolute.txt");
-}
-
-const expectedCjs =
-  major === 10 || (major === 12 && minor < 12)
-    ? "expected-cjs-10.txt"
-    : (major === 13 && minor <= 1) || (major === 12 && minor < 16)
-      ? "expected-cjs-13.0.txt"
-      : major === 13 && minor <= 3
-        ? "expected-cjs-13.2.txt"
-        : major < 16 || (major === 16 && minor <= 5)
-          ? "expected-cjs-16.0.txt"
-          : major < 22 || (major === 22 && minor <= 11)
-            ? "expected-cjs-22.11.txt"
-            : major < 24
-              ? "expected-cjs-23.10.txt"
-              : "expected-cjs.txt";
-
-test("CJS", "./src/main-cjs.cjs", expectedCjs);
-
-const expectedCjsAbsolute =
-  major === 10 || (major === 12 && minor < 12)
-    ? "expected-cjs-absolute-10.txt"
-    : (major === 13 && minor <= 1) || (major === 12 && minor < 16)
-      ? "expected-cjs-absolute-13.0.txt"
-      : major === 13 && minor <= 3
-        ? "expected-cjs-absolute-13.2.txt"
-        : major < 16 || (major === 16 && minor <= 5)
-          ? "expected-cjs-absolute-16.0.txt"
-          : major < 22 || (major === 22 && minor <= 11)
-            ? "expected-cjs-absolute-22.11.txt"
-            : major < 24
-              ? "expected-cjs-absolute-23.10.txt"
-              : "expected-cjs-absolute.txt";
-
-test(
-  "CJS - absoluteRuntime",
-  "./src/absolute/main-cjs.cjs",
-  expectedCjsAbsolute
-);
-
-function test(title, command, expectedName) {
-  const expectedPath = path.join(__dirname, expectedName);
-  const expected = fs.readFileSync(expectedPath, "utf8");
-
-  console.log(`Testing with Node.js ${process.version} - ${title}`);
-  const out = normalize(
-    cp.execSync(
-      `node ${
-        major === 23 || (major === 22 && minor >= 12)
-          ? "--disable-warning=ExperimentalWarning "
-          : ""
-      }${command}`,
-      {
-        cwd: __dirname,
-        encoding: "utf8",
-      }
-    )
-  );
-
-  if (expected === out) {
-    console.log("OK");
-  } else if (process.env.OVERWRITE) {
-    fs.writeFileSync(expectedPath, out);
-    console.log("UPDATED");
-  } else {
-    console.error("FAILED\n\n");
-    console.error(out);
-    process.exitCode = 1;
-  }
-  console.log("\n");
-}
-```
+Horsebox encontrou arquivos candidatos, mas nenhum bloco `test()` / `it()` relevante foi extraído.
 
 ## ./lib/sbom
 
@@ -129,7 +50,7 @@ Nenhum arquivo de teste encontrado pelo Horsebox para esta lib.
 
 **Consultas usadas no Horsebox:** `join`, `path join`, `resolve`, `path resolve`, `isAbsolute`, `path isAbsolute`, `relative`, `path relative`, `sep`, `path sep`
 
-**Arquivos de teste encontrados:** 341
+**Arquivos de teste encontrados:** 343
 
 ### src_modules/cc6b13a61c-@babel_parser/packages/babel-code-frame/test/index.js
 
@@ -4933,7 +4854,7 @@ it("nested if statements needs block", function () {
 
 **Consultas usadas no Horsebox:** `tmpdir`, `os tmpdir`
 
-**Arquivos de teste encontrados:** 148
+**Arquivos de teste encontrados:** 150
 
 ### src_modules/9597e02587-@cyclonedx_cyclonedx-npm/tests/integration/cli.edge-cases.test.js
 

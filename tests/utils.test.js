@@ -10,7 +10,7 @@ const {
   normalizeLibraryNames,
   isTestFile,
   safeReadFile,
-  getCacheDir,
+  getCacheDir
 } = require('../src/lib/utils');
 
 describe('Utils Module', () => {

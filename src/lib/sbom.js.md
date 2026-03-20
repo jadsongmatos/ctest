@@ -108,7 +108,7 @@ Horsebox encontrou arquivos candidatos, mas nenhum bloco `test()` / `it()` relev
 
 **Consultas usadas no Horsebox:** `resolve`, `path resolve`, `join`, `path join`
 
-**Arquivos de teste encontrados:** 214
+**Arquivos de teste encontrados:** 212
 
 ### src_modules/cc6b13a61c-@babel_parser/packages/babel-standalone/test/transform-script-tags.test.js
 
@@ -1749,7 +1749,7 @@ it("should work with tsx", () => {
 
 **Consultas usadas no Horsebox:** `readFileSync`, `fs readFileSync`, `existsSync`, `fs existsSync`, `writeFileSync`, `fs writeFileSync`
 
-**Arquivos de teste encontrados:** 178
+**Arquivos de teste encontrados:** 177
 
 ### src_modules/9597e02587-@cyclonedx_cyclonedx-npm/tests/integration/cli.edge-cases.test.js
 

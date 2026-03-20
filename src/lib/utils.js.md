@@ -12,7 +12,7 @@
 
 **Consultas usadas no Horsebox:** `readFileSync`, `fs readFileSync`, `existsSync`, `fs existsSync`, `mkdirSync`, `fs mkdirSync`
 
-**Arquivos de teste encontrados:** 168
+**Arquivos de teste encontrados:** 167
 
 ### src_modules/9597e02587-@cyclonedx_cyclonedx-npm/tests/integration/cli.edge-cases.test.js
 
@@ -368,7 +368,7 @@ test('suppressed error on non-zero exit', async () => {
 
 **Consultas usadas no Horsebox:** `join`, `path join`
 
-**Arquivos de teste encontrados:** 136
+**Arquivos de teste encontrados:** 134
 
 ### src_modules/cc6b13a61c-@babel_parser/packages/babel-code-frame/test/index.js
 

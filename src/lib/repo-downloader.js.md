@@ -215,7 +215,7 @@ Horsebox encontrou arquivos candidatos, mas nenhum bloco `test()` / `it()` relev
 
 **Consultas usadas no Horsebox:** `createHash`, `crypto createHash`
 
-**Arquivos de teste encontrados:** 109
+**Arquivos de teste encontrados:** 112
 
 Horsebox encontrou arquivos candidatos, mas nenhum bloco `test()` / `it()` relevante foi extraído.
 
@@ -223,7 +223,7 @@ Horsebox encontrou arquivos candidatos, mas nenhum bloco `test()` / `it()` relev
 
 **Consultas usadas no Horsebox:** `join`, `path join`
 
-**Arquivos de teste encontrados:** 136
+**Arquivos de teste encontrados:** 134
 
 ### src_modules/cc6b13a61c-@babel_parser/packages/babel-code-frame/test/index.js
 

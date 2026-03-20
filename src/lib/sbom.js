@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-async function fetchNpmPackageInfo(packageName) {
+async function fetchNpmPackageInfo (packageName) {
   return new Promise((resolve) => {
     const url = `https://registry.npmjs.org/${encodeURIComponent(packageName)}`;
 
@@ -26,7 +26,7 @@ async function fetchNpmPackageInfo(packageName) {
   });
 }
 
-async function createSBOMFromPackageLock(packageLock, fetchRepoUrls = false, omitTransitive = false) {
+async function createSBOMFromPackageLock (packageLock, fetchRepoUrls = false, omitTransitive = false) {
   const components = [];
   const packageNames = [];
 
@@ -41,7 +41,7 @@ async function createSBOMFromPackageLock(packageLock, fetchRepoUrls = false, omi
 
   if (packageLock.packages) {
     for (const [pkgPath, pkg] of Object.entries(packageLock.packages)) {
-      if (pkgPath === '') continue;
+      if (pkgPath === '') { continue; }
 
       // In lockfile v3, pkgPath is "node_modules/name"
       const name = pkg.name || pkgPath.replace(/^node_modules\//, '').split('/node_modules/').pop();
@@ -77,7 +77,7 @@ async function createSBOMFromPackageLock(packageLock, fetchRepoUrls = false, omi
         version,
         bomRef: `pkg:npm/${name}@${version}`,
         externalReferences: resolved ? [{ type: 'distribution', url: resolved }] : [],
-        ...(repoUrl ? { repository: { url: repoUrl } } : {}),
+        ...(repoUrl ? { repository: { url: repoUrl } } : {})
       });
     }
   } else {
@@ -87,7 +87,7 @@ async function createSBOMFromPackageLock(packageLock, fetchRepoUrls = false, omi
         name,
         version,
         bomRef: `pkg:npm/${name}@${version}`,
-        externalReferences: resolved ? [{ type: 'distribution', url: resolved }] : [],
+        externalReferences: resolved ? [{ type: 'distribution', url: resolved }] : []
       });
     }
   }
@@ -96,11 +96,11 @@ async function createSBOMFromPackageLock(packageLock, fetchRepoUrls = false, omi
     bomFormat: 'CycloneDX',
     specVersion: '1.4',
     version: 1,
-    components,
+    components
   };
 }
 
-async function generateSBOM(projectPath, outputFile = 'sbom.cdx.json', fetchRepoUrls = false, omitTransitive = false) {
+async function generateSBOM (projectPath, outputFile = 'sbom.cdx.json', fetchRepoUrls = false, omitTransitive = false) {
   const outputFilePath = path.resolve(projectPath, outputFile);
 
   try {
@@ -110,14 +110,14 @@ async function generateSBOM(projectPath, outputFile = 'sbom.cdx.json', fetchRepo
       {
         cwd: projectPath,
         stdio: 'pipe',
-        env: { ...process.env, FORCE_COLOR: '0' },
+        env: { ...process.env, FORCE_COLOR: '0' }
       }
     );
 
-    let sbom = JSON.parse(fs.readFileSync(outputFilePath, 'utf8'));
-    
+    const sbom = JSON.parse(fs.readFileSync(outputFilePath, 'utf8'));
+
     // Ensure components is an array
-    if (!sbom.components) sbom.components = [];
+    if (!sbom.components) { sbom.components = []; }
 
     // Post-process to ensure only direct dependencies if omitTransitive is true
     if (omitTransitive) {
@@ -125,13 +125,13 @@ async function generateSBOM(projectPath, outputFile = 'sbom.cdx.json', fetchRepo
       if (fs.existsSync(packageJsonPath)) {
         const pkgJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
         const directDeps = new Set(Object.keys(pkgJson.dependencies || {}));
-        
+
         // Filter existing components
         if (sbom.components.length > 0) {
           sbom.components = sbom.components.filter(c => directDeps.has(c.name));
         }
-        
-        // If components is empty after filtering (or was already empty), 
+
+        // If components is empty after filtering (or was already empty),
         // try to populate from dependencies graph or directDeps
         if (sbom.components.length === 0 && directDeps.size > 0) {
           // Fallback to manual creation for those direct deps since tool omitted them
@@ -175,16 +175,15 @@ async function generateSBOM(projectPath, outputFile = 'sbom.cdx.json', fetchRepo
             }
 
             if (repoUrl) {
-              if (!component.externalReferences) component.externalReferences = [];
+              if (!component.externalReferences) { component.externalReferences = []; }
               component.externalReferences.push({ type: 'vcs', url: repoUrl });
             }
           }
         }
       }
     }
-    
-    fs.writeFileSync(outputFilePath, JSON.stringify(sbom, null, 2));
 
+    fs.writeFileSync(outputFilePath, JSON.stringify(sbom, null, 2));
   } catch (error) {
     const packageLockPath = path.join(projectPath, 'package-lock.json');
 
@@ -200,11 +199,11 @@ async function generateSBOM(projectPath, outputFile = 'sbom.cdx.json', fetchRepo
   return outputFilePath;
 }
 
-function readSBOM(sbomPath) {
+function readSBOM (sbomPath) {
   return JSON.parse(fs.readFileSync(sbomPath, 'utf8'));
 }
 
-function extractComponents(sbom) {
+function extractComponents (sbom) {
   const components = sbom.components || [];
 
   return components.map(component => {
@@ -212,7 +211,7 @@ function extractComponents(sbom) {
 
     if (component.externalReferences) {
       const vcsRef = component.externalReferences.find(ref => ref.type === 'vcs');
-      if (vcsRef && vcsRef.url) repoUrl = vcsRef.url;
+      if (vcsRef && vcsRef.url) { repoUrl = vcsRef.url; }
     }
 
     if (!repoUrl && component.repository && component.repository.url) {
@@ -229,7 +228,7 @@ function extractComponents(sbom) {
     return {
       name: component.name,
       version: component.version,
-      repo_url: repoUrl,
+      repo_url: repoUrl
     };
   });
 }
@@ -238,5 +237,5 @@ module.exports = {
   generateSBOM,
   readSBOM,
   extractComponents,
-  createSBOMFromPackageLock,
+  createSBOMFromPackageLock
 };

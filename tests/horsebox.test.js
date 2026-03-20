@@ -93,10 +93,10 @@ describe('Horsebox Module', () => {
         'build',
         '--from', fromDir,
         '--index', indexDir,
-        '--using', 'filecontent',
+        '--using', 'filecontent'
       ], {
         encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'pipe'],
+        stdio: ['ignore', 'pipe', 'pipe']
       });
     });
   });
@@ -137,10 +137,10 @@ describe('Horsebox Module', () => {
         'build',
         '--from', fromDir,
         '--index', indexDir,
-        '--using', 'fileline',
+        '--using', 'fileline'
       ], {
         encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'pipe'],
+        stdio: ['ignore', 'pipe', 'pipe']
       });
     });
   });
@@ -171,14 +171,14 @@ describe('Horsebox Module', () => {
       }
 
       const sourceDir = path.join(__dirname, 'fixtures');
-      
+
       if (!fs.existsSync(sourceDir)) {
         console.log('Skipping test - fixtures directory not found');
         return;
       }
 
       const { buildFileContentIndex, searchIndex } = require('../src/lib/horsebox');
-      
+
       try {
         buildFileContentIndex(sourceDir, testIndexDir);
         const results = searchIndex(testIndexDir, 'test', 10);
@@ -226,10 +226,10 @@ describe('Horsebox Module', () => {
         '--index', testIndexDir,
         '--query', 'myQuery',
         '--json',
-        '--limit', '25',
+        '--limit', '25'
       ], {
         encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'pipe'],
+        stdio: ['ignore', 'pipe', 'pipe']
       });
     });
 
@@ -245,7 +245,7 @@ describe('Horsebox Module', () => {
         '--index', testIndexDir,
         '--query', 'query',
         '--json',
-        '--limit', '30',
+        '--limit', '30'
       ], expect.any(Object));
     });
 

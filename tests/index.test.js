@@ -34,7 +34,7 @@ describe('Main Module', () => {
       }
 
       return analyze(testProjectPath, {
-        sbomPath: 'test-sbom.json',
+        sbomPath: 'test-sbom.json'
       }).then(result => {
         expect(result).toBeDefined();
         expect(result.sbomPath).toBeDefined();

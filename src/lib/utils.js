@@ -1,11 +1,11 @@
 const path = require('path');
 const fs = require('fs');
 
-function uniq(items) {
+function uniq (items) {
   return [...new Set(items.filter(Boolean))];
 }
 
-function normalizeLibraryNames(libName) {
+function normalizeLibraryNames (libName) {
   const names = new Set();
 
   names.add(libName);
@@ -16,14 +16,14 @@ function normalizeLibraryNames(libName) {
   return [...names].filter(Boolean);
 }
 
-function isTestFile(filePath) {
+function isTestFile (filePath) {
   return (
     /(^|[/\\])(__tests__|tests?|specs?)([/\\])/.test(filePath) ||
     /\.(test|spec)\.(js|jsx|ts|tsx|mjs|cjs)$/i.test(filePath)
   );
 }
 
-function safeReadFile(filePath) {
+function safeReadFile (filePath) {
   try {
     return fs.readFileSync(filePath, 'utf8');
   } catch {
@@ -33,7 +33,7 @@ function safeReadFile(filePath) {
 
 const os = require('os');
 
-function getCacheDir() {
+function getCacheDir () {
   const homeDir = os.homedir();
   const cacheDir = path.join(homeDir, '.ctest', 'repos');
   if (!fs.existsSync(cacheDir)) {
@@ -48,5 +48,5 @@ module.exports = {
   normalizeLibraryNames,
   isTestFile,
   safeReadFile,
-  getCacheDir,
+  getCacheDir
 };

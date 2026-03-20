@@ -5,12 +5,13 @@ jest.mock('fs');
 jest.mock('@babel/parser');
 
 const parser = require('@babel/parser');
+
 const {
   analyzeSourceFile,
   scanSourceFiles,
   parseGitIgnore,
   patternToRegex,
-  shouldIgnore,
+  shouldIgnore
 } = require('../src/lib/source-analyzer');
 
 describe('Source Analyzer Module', () => {
@@ -160,10 +161,10 @@ node_modules
     it('should scan directory for source files', () => {
       const rootEntries = [
         { name: 'src', isDirectory: () => true, isFile: () => false },
-        { name: 'index.js', isDirectory: () => false, isFile: () => true },
+        { name: 'index.js', isDirectory: () => false, isFile: () => true }
       ];
       const srcEntries = [
-        { name: 'app.ts', isDirectory: () => false, isFile: () => true },
+        { name: 'app.ts', isDirectory: () => false, isFile: () => true }
       ];
 
       fs.readdirSync
@@ -180,7 +181,7 @@ node_modules
     it('should ignore node_modules', () => {
       const mockEntries = [
         { name: 'node_modules', isDirectory: () => true, isFile: () => false },
-        { name: 'index.js', isDirectory: () => false, isFile: () => true },
+        { name: 'index.js', isDirectory: () => false, isFile: () => true }
       ];
 
       fs.readdirSync.mockReturnValue(mockEntries);
@@ -194,7 +195,7 @@ node_modules
     it('should respect gitignore patterns', () => {
       const mockEntries = [
         { name: 'dist', isDirectory: () => true, isFile: () => false },
-        { name: 'index.js', isDirectory: () => false, isFile: () => true },
+        { name: 'index.js', isDirectory: () => false, isFile: () => true }
       ];
 
       fs.readdirSync.mockReturnValue(mockEntries);
@@ -209,7 +210,7 @@ node_modules
     it('should handle excludeDirs option', () => {
       const mockEntries = [
         { name: 'custom-ignore', isDirectory: () => true, isFile: () => false },
-        { name: 'index.js', isDirectory: () => false, isFile: () => true },
+        { name: 'index.js', isDirectory: () => false, isFile: () => true }
       ];
 
       fs.readdirSync.mockReturnValue(mockEntries);
@@ -223,7 +224,7 @@ node_modules
     it('should disable gitignore when respectGitIgnore is false', () => {
       const mockEntries = [
         { name: 'dist', isDirectory: () => true, isFile: () => false },
-        { name: 'index.js', isDirectory: () => false, isFile: () => true },
+        { name: 'index.js', isDirectory: () => false, isFile: () => true }
       ];
 
       fs.readdirSync.mockReturnValue(mockEntries);
@@ -242,7 +243,7 @@ node_modules
         { name: 'file.cjs', isDirectory: () => false, isFile: () => true },
         { name: 'file.ts', isDirectory: () => false, isFile: () => true },
         { name: 'file.tsx', isDirectory: () => false, isFile: () => true },
-        { name: 'file.txt', isDirectory: () => false, isFile: () => true },
+        { name: 'file.txt', isDirectory: () => false, isFile: () => true }
       ];
 
       fs.readdirSync.mockReturnValue(mockEntries);

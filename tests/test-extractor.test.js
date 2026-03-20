@@ -2,10 +2,9 @@ const fs = require('fs');
 
 jest.mock('../src/lib/utils');
 const { safeReadFile } = require('../src/lib/utils');
-
 const {
   extractTestBlocks,
-  extractRelevantBlocksFromFile,
+  extractRelevantBlocksFromFile
 } = require('../src/lib/test-extractor');
 
 describe('Test Extractor Module', () => {

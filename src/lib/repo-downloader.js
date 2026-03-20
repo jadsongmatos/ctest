@@ -4,20 +4,20 @@ const os = require('os');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 
-function hash(s) {
+function hash (s) {
   return crypto.createHash('sha1').update(s).digest('hex').slice(0, 10);
 }
 
-function getRepoIdentifier(gitUrl) {
+function getRepoIdentifier (gitUrl) {
   const match = gitUrl.match(/github\.com[/:]([^/]+\/[^/]+?)(?:\.git)?(?:\/|$)/);
   return match ? match[1] : gitUrl;
 }
 
-function parseRepoUrl(repoUrl, version) {
-  if (!repoUrl) return null;
+function parseRepoUrl (repoUrl, version) {
+  if (!repoUrl) { return null; }
 
   let gitUrl = repoUrl;
-  let ref = version ? `v${version}` : null;
+  const ref = version ? `v${version}` : null;
 
   const hashMatch = repoUrl.match(/^(.+?)(?:#(.+))?$/);
   if (hashMatch) {
@@ -34,7 +34,7 @@ function parseRepoUrl(repoUrl, version) {
   return { gitUrl, ref };
 }
 
-function shWithTimeout(cmd, args, timeout = 120000) {
+function shWithTimeout (cmd, args, timeout = 120000) {
   return new Promise((resolve) => {
     let completed = false;
     const child = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -46,13 +46,13 @@ function shWithTimeout(cmd, args, timeout = 120000) {
     child.stderr.on('data', data => { stderr += data.toString(); });
 
     child.on('close', code => {
-      if (completed) return;
+      if (completed) { return; }
       completed = true;
       resolve({ success: code === 0, stdout, stderr });
     });
 
     child.on('error', err => {
-      if (completed) return;
+      if (completed) { return; }
       completed = true;
       resolve({ success: false, error: err.message });
     });
@@ -67,13 +67,13 @@ function shWithTimeout(cmd, args, timeout = 120000) {
   });
 }
 
-async function cloneRepo(gitUrl, ref, destDir) {
+async function cloneRepo (gitUrl, ref, destDir) {
   const cloneArgs = ['clone', '--depth', '1'];
-  if (ref) cloneArgs.push('--branch', ref);
+  if (ref) { cloneArgs.push('--branch', ref); }
   cloneArgs.push(gitUrl, destDir);
 
   let result = await shWithTimeout('git', cloneArgs, 120000);
-  if (result.success) return true;
+  if (result.success) { return true; }
 
   result = await shWithTimeout('git', ['clone', '--depth', '1', gitUrl, destDir], 120000);
   return result.success;
@@ -81,7 +81,7 @@ async function cloneRepo(gitUrl, ref, destDir) {
 
 const { getCacheDir } = require('./utils');
 
-async function downloadRepos(components, options = {}) {
+async function downloadRepos (components, options = {}) {
   const results = {};
   const downloadRoot = options.baseDir || getCacheDir();
   let successCount = 0;
@@ -114,7 +114,7 @@ async function downloadRepos(components, options = {}) {
         path: destDir,
         repo: gitUrl,
         identifier: getRepoIdentifier(gitUrl),
-        cached: true,
+        cached: true
       };
       continue;
     }
@@ -129,7 +129,7 @@ async function downloadRepos(components, options = {}) {
       success,
       path: success ? destDir : null,
       repo: gitUrl,
-      identifier: getRepoIdentifier(gitUrl),
+      identifier: getRepoIdentifier(gitUrl)
     };
   }
 
@@ -139,6 +139,5 @@ async function downloadRepos(components, options = {}) {
 
 module.exports = {
   downloadRepos,
-  parseRepoUrl,
+  parseRepoUrl
 };
-

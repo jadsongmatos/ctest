@@ -1,6 +1,6 @@
 const { execFileSync } = require('child_process');
 
-function ensureHorsebox() {
+function ensureHorsebox () {
   try {
     execFileSync('hb', ['--help'], { stdio: 'ignore' });
   } catch {
@@ -8,36 +8,36 @@ function ensureHorsebox() {
   }
 }
 
-function runHb(args, options = {}) {
+function runHb (args, options = {}) {
   return execFileSync('hb', args, {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
-    ...options,
+    ...options
   });
 }
 
-function buildFileContentIndex(fromDir, indexDir) {
+function buildFileContentIndex (fromDir, indexDir) {
   runHb([
     'build',
     '--from', fromDir,
     '--index', indexDir,
-    '--using', 'filecontent',
+    '--using', 'filecontent'
   ]);
 }
 
-function buildFileLineIndex(fromDir, indexDir) {
+function buildFileLineIndex (fromDir, indexDir) {
   runHb([
     'build',
     '--from', fromDir,
     '--index', indexDir,
-    '--using', 'fileline',
+    '--using', 'fileline'
   ]);
 }
 
 const searchCache = new Map();
 
-function searchIndex(indexDir, query, limit = 30) {
-  if (!query || !query.trim()) return [];
+function searchIndex (indexDir, query, limit = 30) {
+  if (!query || !query.trim()) { return []; }
 
   const cacheKey = `${indexDir}:${query}:${limit}`;
   if (searchCache.has(cacheKey)) {
@@ -49,7 +49,7 @@ function searchIndex(indexDir, query, limit = 30) {
     '--index', indexDir,
     '--query', query,
     '--json',
-    '--limit', String(limit),
+    '--limit', String(limit)
   ]);
 
   const parsed = JSON.parse(stdout);
@@ -68,5 +68,5 @@ module.exports = {
   ensureHorsebox,
   buildFileContentIndex,
   buildFileLineIndex,
-  searchIndex,
+  searchIndex
 };

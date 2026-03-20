@@ -1,14 +1,15 @@
 const fs = require('fs');
 const path = require('path');
+
 const { searchIndex } = require('./horsebox');
 const { extractRelevantBlocksFromFile } = require('./test-extractor');
 const {
   uniq,
   normalizeLibraryNames,
-  isTestFile,
+  isTestFile
 } = require('./utils');
 
-function buildQueriesForUsage(libName, usage) {
+function buildQueriesForUsage (libName, usage) {
   const queries = [];
   const libNames = normalizeLibraryNames(libName);
 
@@ -17,7 +18,7 @@ function buildQueriesForUsage(libName, usage) {
 
     const parts = chain.split('.');
     const last = parts[parts.length - 1];
-    if (last && last !== chain) queries.push(last);
+    if (last && last !== chain) { queries.push(last); }
 
     for (const libAlias of libNames) {
       queries.push(`${libAlias} ${last}`);
@@ -43,7 +44,7 @@ function buildQueriesForUsage(libName, usage) {
   return uniq(queries.filter(q => q && q.trim().length >= 2));
 }
 
-function buildTermList(libName, usage) {
+function buildTermList (libName, usage) {
   const terms = new Set();
 
   for (const alias of normalizeLibraryNames(libName)) {
@@ -68,12 +69,12 @@ function buildTermList(libName, usage) {
   return [...terms].filter(Boolean);
 }
 
-function collectTestFilesFromHorsebox(libsIndexDir, libsLineIndexDir, queries) {
+function collectTestFilesFromHorsebox (libsIndexDir, libsLineIndexDir, queries) {
   const paths = new Set();
 
   // Skip if index directories don't exist
-  if (!libsIndexDir || !fs.existsSync(libsIndexDir)) return [];
-  if (!libsLineIndexDir || !fs.existsSync(libsLineIndexDir)) return [];
+  if (!libsIndexDir || !fs.existsSync(libsIndexDir)) { return []; }
+  if (!libsLineIndexDir || !fs.existsSync(libsLineIndexDir)) { return []; }
 
   for (const query of queries) {
     try {
@@ -94,24 +95,24 @@ function collectTestFilesFromHorsebox(libsIndexDir, libsLineIndexDir, queries) {
   return [...paths];
 }
 
-function shortenPath(fullPath, projectRoot) {
-  if (!fullPath) return '';
+function shortenPath (fullPath, projectRoot) {
+  if (!fullPath) { return ''; }
   let rel = projectRoot ? path.relative(projectRoot, fullPath) : fullPath;
   // If the path starts with src/, optionally remove it or keep it depending on preference.
   // The instruction "remover src" likely means the user wants to see 'lib/horsebox.js' instead of 'src/lib/horsebox.js'.
-  if (rel.startsWith('src' + path.sep)) {
+  if (rel.startsWith(`src${path.sep}`)) {
     rel = rel.slice(4);
   }
   return rel;
 }
 
-async function writeMarkdownForSource({
+async function writeMarkdownForSource ({
   sourceFile,
   usage,
   outputFile,
   libsIndexDir,
   libsLineIndexDir,
-  projectRoot,
+  projectRoot
 }) {
   const shortSource = shortenPath(sourceFile, projectRoot);
   let md = `# External tests for ${path.basename(sourceFile)}\n\n`;
@@ -126,7 +127,7 @@ async function writeMarkdownForSource({
   }
 
   // Task: Add checklist
-  md += `## Checklist\n\n`;
+  md += '## Checklist\n\n';
   for (const [libName] of libs) {
     md += `- [ ] ${libName}\n`;
   }
@@ -152,11 +153,11 @@ async function writeMarkdownForSource({
 
     for (const testFile of candidateTestFiles) {
       const blocks = extractRelevantBlocksFromFile(testFile, terms);
-      if (blocks.length === 0) continue;
+      if (blocks.length === 0) { continue; }
 
-      // Use a shortened path for test files too if possible, 
+      // Use a shortened path for test files too if possible,
       // though they might be in a temporary download directory.
-      const displayPath = testFile.includes('ctest-work-') 
+      const displayPath = testFile.includes('ctest-work-')
         ? testFile.split(path.sep).slice(-3).join(path.sep) // e.g., "lib-name/tests/test.js"
         : shortenPath(testFile, projectRoot);
 
@@ -164,7 +165,7 @@ async function writeMarkdownForSource({
 
       for (const block of blocks) {
         const key = `${testFile}::${block.title}::${block.code.length}`;
-        if (seenBlocks.has(key)) continue;
+        if (seenBlocks.has(key)) { continue; }
         seenBlocks.add(key);
         copied++;
 
@@ -183,10 +184,9 @@ async function writeMarkdownForSource({
   fs.writeFileSync(outputFile, md, 'utf8');
 }
 
-
 module.exports = {
   writeMarkdownForSource,
   buildQueriesForUsage,
   buildTermList,
-  shortenPath,
+  shortenPath
 };

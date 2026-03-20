@@ -11,7 +11,7 @@ const {
   generateSBOM,
   readSBOM,
   extractComponents,
-  createSBOMFromPackageLock,
+  createSBOMFromPackageLock
 } = require('../src/lib/sbom');
 
 describe('SBOM Module', () => {
@@ -36,19 +36,19 @@ describe('SBOM Module', () => {
             name: 'root',
             version: '1.0.0',
             dependencies: {
-              express: '4.18.0',
-            },
+              express: '4.18.0'
+            }
           },
           'node_modules/express': {
             name: 'express',
             version: '4.18.0',
-            resolved: 'https://registry.npmjs.org/express/-/express-4.18.0.tgz',
+            resolved: 'https://registry.npmjs.org/express/-/express-4.18.0.tgz'
           },
           'node_modules/lodash': {
             name: 'lodash',
-            version: '4.17.21',
-          },
-        },
+            version: '4.17.21'
+          }
+        }
       };
 
       const sbom = await createSBOMFromPackageLock(packageLock);
@@ -66,18 +66,18 @@ describe('SBOM Module', () => {
         packages: {
           '': {
             dependencies: {
-              express: '4.18.0',
-            },
+              express: '4.18.0'
+            }
           },
           'node_modules/express': {
             name: 'express',
-            version: '4.18.0',
+            version: '4.18.0'
           },
           'node_modules/accepts': {
             name: 'accepts',
-            version: '1.3.8',
-          },
-        },
+            version: '1.3.8'
+          }
+        }
       };
 
       const sbom = await createSBOMFromPackageLock(packageLock, false, true);
@@ -89,7 +89,7 @@ describe('SBOM Module', () => {
     it('should handle empty packages', async () => {
       const packageLock = {
         lockfileVersion: 2,
-        packages: {},
+        packages: {}
       };
 
       const sbom = await createSBOMFromPackageLock(packageLock);
@@ -102,9 +102,9 @@ describe('SBOM Module', () => {
         lockfileVersion: 2,
         packages: {
           'node_modules/express': {
-            version: '4.18.0',
-          },
-        },
+            version: '4.18.0'
+          }
+        }
       };
 
       const sbom = await createSBOMFromPackageLock(packageLock);
@@ -119,9 +119,9 @@ describe('SBOM Module', () => {
         packages: {
           '': {
             name: 'root',
-            version: '1.0.0',
-          },
-        },
+            version: '1.0.0'
+          }
+        }
       };
 
       const sbom = await createSBOMFromPackageLock(packageLock);
@@ -136,8 +136,8 @@ describe('SBOM Module', () => {
         bomFormat: 'CycloneDX',
         specVersion: '1.4',
         components: [
-          { name: 'express', version: '4.18.0' },
-        ],
+          { name: 'express', version: '4.18.0' }
+        ]
       };
 
       fs.existsSync.mockReturnValue(true);
@@ -159,8 +159,8 @@ describe('SBOM Module', () => {
         specVersion: '1.4',
         components: [
           { name: 'express', version: '4.18.0' },
-          { name: 'lodash', version: '4.17.21' },
-        ],
+          { name: 'lodash', version: '4.17.21' }
+        ]
       };
 
       fs.existsSync.mockReturnValue(true);
@@ -182,14 +182,14 @@ describe('SBOM Module', () => {
         bomFormat: 'CycloneDX',
         specVersion: '1.4',
         components: [
-          { name: 'express', version: '4.18.0' },
-        ],
+          { name: 'express', version: '4.18.0' }
+        ]
       };
 
       const mockPackageInfo = {
         repository: {
-          url: 'https://github.com/expressjs/express',
-        },
+          url: 'https://github.com/expressjs/express'
+        }
       };
 
       fs.existsSync.mockReturnValue(true);
@@ -202,9 +202,9 @@ describe('SBOM Module', () => {
           cb({
             statusCode: 200,
             on: (event, handler) => {
-              if (event === 'data') handler(JSON.stringify(mockPackageInfo));
-              if (event === 'end') handler();
-            },
+              if (event === 'data') { handler(JSON.stringify(mockPackageInfo)); }
+              if (event === 'end') { handler(); }
+            }
           });
         });
         return req;
@@ -220,8 +220,8 @@ describe('SBOM Module', () => {
         bomFormat: 'CycloneDX',
         specVersion: '1.4',
         components: [
-          { name: 'express', version: '4.18.0' },
-        ],
+          { name: 'express', version: '4.18.0' }
+        ]
       };
 
       fs.existsSync.mockReturnValue(true);
@@ -267,7 +267,7 @@ describe('SBOM Module', () => {
       const mockSBOM = {
         bomFormat: 'CycloneDX',
         specVersion: '1.4',
-        components: [],
+        components: []
       };
 
       fs.readFileSync.mockReturnValue(JSON.stringify(mockSBOM));
@@ -287,10 +287,10 @@ describe('SBOM Module', () => {
             name: 'express',
             version: '4.18.0',
             externalReferences: [
-              { type: 'vcs', url: 'https://github.com/expressjs/express' },
-            ],
-          },
-        ],
+              { type: 'vcs', url: 'https://github.com/expressjs/express' }
+            ]
+          }
+        ]
       };
 
       const components = extractComponents(sbom);
@@ -299,7 +299,7 @@ describe('SBOM Module', () => {
       expect(components[0]).toEqual({
         name: 'express',
         version: '4.18.0',
-        repo_url: 'https://github.com/expressjs/express',
+        repo_url: 'https://github.com/expressjs/express'
       });
     });
 
@@ -309,9 +309,9 @@ describe('SBOM Module', () => {
           {
             name: 'lodash',
             version: '4.17.21',
-            repository: { url: 'https://github.com/lodash/lodash' },
-          },
-        ],
+            repository: { url: 'https://github.com/lodash/lodash' }
+          }
+        ]
       };
 
       const components = extractComponents(sbom);
@@ -327,10 +327,10 @@ describe('SBOM Module', () => {
             name: 'pkg',
             version: '1.0.0',
             externalReferences: [
-              { type: 'vcs', url: 'git+https://github.com/user/repo.git' },
-            ],
-          },
-        ],
+              { type: 'vcs', url: 'git+https://github.com/user/repo.git' }
+            ]
+          }
+        ]
       };
 
       const components = extractComponents(sbom);
@@ -343,9 +343,9 @@ describe('SBOM Module', () => {
         components: [
           {
             name: 'internal-pkg',
-            version: '1.0.0',
-          },
-        ],
+            version: '1.0.0'
+          }
+        ]
       };
 
       const components = extractComponents(sbom);
@@ -356,7 +356,7 @@ describe('SBOM Module', () => {
 
     it('should handle empty components', () => {
       const sbom = {
-        components: [],
+        components: []
       };
 
       const components = extractComponents(sbom);
@@ -379,11 +379,11 @@ describe('SBOM Module', () => {
             name: 'pkg',
             version: '1.0.0',
             externalReferences: [
-              { type: 'vcs', url: 'https://github.com/primary/repo' },
+              { type: 'vcs', url: 'https://github.com/primary/repo' }
             ],
-            repository: { url: 'https://github.com/secondary/repo' },
-          },
-        ],
+            repository: { url: 'https://github.com/secondary/repo' }
+          }
+        ]
       };
 
       const components = extractComponents(sbom);

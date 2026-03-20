@@ -1,11 +1,12 @@
 const fs = require('fs');
 const path = require('path');
+
 const parser = require('@babel/parser');
 
 /**
  * Parse .gitignore file and return array of patterns
  */
-function parseGitIgnore(dir) {
+function parseGitIgnore (dir) {
   const gitIgnorePath = path.join(dir, '.gitignore');
   const patterns = [];
 
@@ -35,7 +36,7 @@ function parseGitIgnore(dir) {
 /**
  * Convert a gitignore pattern to a regex
  */
-function patternToRegex(pattern) {
+function patternToRegex (pattern) {
   // Escape special regex characters except * and ?
   let regex = pattern
     .replace(/[.+^${}()|[\]\\]/g, '\\$&')
@@ -46,28 +47,28 @@ function patternToRegex(pattern) {
   const anchored = pattern.startsWith('/');
   if (anchored) {
     regex = regex.slice(1);
-    return new RegExp('^' + regex);
+    return new RegExp(`^${regex}`);
   }
 
   // Handle trailing slash (directory only)
   const dirOnly = pattern.endsWith('/');
   if (dirOnly) {
-    regex = regex.slice(0, -1) + '/.*';
+    regex = `${regex.slice(0, -1)}/.*`;
   }
 
   // Pattern with slash in middle is relative to root
   if (pattern.includes('/') && !pattern.startsWith('**/')) {
-    return new RegExp('(^|/)' + regex);
+    return new RegExp(`(^|/)${regex}`);
   }
 
   // Pattern without slash matches anywhere
-  return new RegExp('(^|/)' + regex + '($|/)');
+  return new RegExp(`(^|/)${regex}($|/)`);
 }
 
 /**
  * Check if a file path should be ignored based on gitignore patterns
  */
-function shouldIgnore(filePath, patterns, baseDir) {
+function shouldIgnore (filePath, patterns, baseDir) {
   const relativePath = path.relative(baseDir, filePath);
   const normalizedPath = relativePath.replace(/\\/g, '/');
 
@@ -89,21 +90,21 @@ function shouldIgnore(filePath, patterns, baseDir) {
 /**
  * Get all gitignore patterns from directory tree
  */
-function getGitIgnorePatterns(dir) {
+function getGitIgnorePatterns (dir) {
   const patterns = parseGitIgnore(dir);
   return patterns;
 }
 
-function getRootObjectName(node) {
-  if (!node) return null;
-  if (node.type === 'Identifier') return node.name;
-  if (node.type === 'MemberExpression') return getRootObjectName(node.object);
+function getRootObjectName (node) {
+  if (!node) { return null; }
+  if (node.type === 'Identifier') { return node.name; }
+  if (node.type === 'MemberExpression') { return getRootObjectName(node.object); }
   return null;
 }
 
-function getMemberProperties(node) {
-  if (!node) return [];
-  if (node.type === 'Identifier') return [];
+function getMemberProperties (node) {
+  if (!node) { return []; }
+  if (node.type === 'Identifier') { return []; }
 
   if (node.type === 'MemberExpression') {
     const props = [];
@@ -119,20 +120,20 @@ function getMemberProperties(node) {
       props.push(...getMemberProperties(node.object));
     }
 
-    if (propName) props.push(propName);
+    if (propName) { props.push(propName); }
     return props;
   }
 
   return [];
 }
 
-function traverse(node, callback, parent = null) {
-  if (!node || typeof node !== 'object') return;
+function traverse (node, callback, parent = null) {
+  if (!node || typeof node !== 'object') { return; }
 
   callback(node, parent);
 
   for (const key in node) {
-    if (['loc', 'start', 'end', 'range', 'parent'].includes(key)) continue;
+    if (['loc', 'start', 'end', 'range', 'parent'].includes(key)) { continue; }
 
     const value = node[key];
     if (Array.isArray(value)) {
@@ -143,11 +144,11 @@ function traverse(node, callback, parent = null) {
   }
 }
 
-function analyzeSourceFile(filePath) {
-  if (!fs.existsSync(filePath)) return {};
+function analyzeSourceFile (filePath) {
+  if (!fs.existsSync(filePath)) { return {}; }
 
   const content = fs.readFileSync(filePath, 'utf8');
-  
+
   let ast;
   try {
     ast = parser.parse(content, {
@@ -164,13 +165,13 @@ function analyzeSourceFile(filePath) {
         'logicalAssignment',
         'numericSeparator',
         'optionalCatchBinding',
-        'throwExpressions',
+        'throwExpressions'
       ],
       allowAwaitOutsideFunction: true,
       allowImportExportEverywhere: true,
       allowReturnOutsideFunction: true,
       allowSuperOutsideMethod: true,
-      allowUndeclaredExports: true,
+      allowUndeclaredExports: true
     });
   } catch (error) {
     // If parsing fails, return empty result instead of crashing
@@ -189,7 +190,7 @@ function analyzeSourceFile(filePath) {
       node.callee.name === 'require'
     ) {
       const arg = node.arguments[0];
-      if (!arg || arg.type !== 'StringLiteral') return;
+      if (!arg || arg.type !== 'StringLiteral') { return; }
       const libName = arg.value;
 
       if (parent && parent.type === 'VariableDeclarator' && parent.id) {
@@ -257,10 +258,10 @@ function analyzeSourceFile(filePath) {
     if (node.type === 'MemberExpression') {
       const objName = getRootObjectName(node);
       const libName = imports[objName] || classInstances[objName];
-      if (!libName) return;
+      if (!libName) { return; }
 
       const props = getMemberProperties(node);
-      if (props.length === 0) return;
+      if (props.length === 0) { return; }
 
       if (!libraryUsage[libName]) {
         libraryUsage[libName] = { functions: new Set(), members: {}, chains: new Set() };
@@ -280,7 +281,7 @@ function analyzeSourceFile(filePath) {
     result[libName] = {
       functions: Array.from(data.functions),
       members: {},
-      chains: Array.from(data.chains),
+      chains: Array.from(data.chains)
     };
 
     for (const [memberName, funcs] of Object.entries(data.members)) {
@@ -291,7 +292,7 @@ function analyzeSourceFile(filePath) {
   return result;
 }
 
-function scanSourceFiles(dir, options = {}) {
+function scanSourceFiles (dir, options = {}) {
   const { respectGitIgnore = true, excludeDirs = [] } = options;
   const sourceFiles = [];
   const gitIgnorePatterns = respectGitIgnore ? getGitIgnorePatterns(dir) : [];
@@ -299,7 +300,7 @@ function scanSourceFiles(dir, options = {}) {
   // Directories that are always ignored regardless of .gitignore
   const alwaysIgnoredDirs = ['node_modules', '.git', 'dist', 'build', 'coverage', 'test', 'tests', '__tests__', ...excludeDirs];
 
-  function scan(currentDir) {
+  function scan (currentDir) {
     const entries = fs.readdirSync(currentDir, { withFileTypes: true });
 
     for (const entry of entries) {
@@ -335,5 +336,5 @@ module.exports = {
   scanSourceFiles,
   parseGitIgnore,
   patternToRegex,
-  shouldIgnore,
+  shouldIgnore
 };

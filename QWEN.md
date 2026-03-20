@@ -115,6 +115,8 @@ Antes de implementar novos recursos, execute os testes:
 npm test
 ```
 
+Os testes são executados em modo silencioso (`--silent`) para reduzir a verbosidade da saída.
+
 ### Estrutura dos Testes
 
 Os testes verificam:
@@ -166,3 +168,12 @@ O analyzer rastreia instâncias de classes importadas (ex: `const prisma = new P
 - Busca baseada em múltiplos termos (cadeia completa + partes)
 - Filtragem por arquivos de teste
 - Extração de blocos completos com braces balanceados
+
+### Segurança de Diretórios
+- Todos os diretórios criados usam permissões restritivas (`mode: 0o700`)
+- Previne vulnerabilidades de diretórios world-writable
+- Diretórios temporários e de cache são criados com acesso apenas para o proprietário
+
+### Saída de Testes
+- Comandos de teste usam `--silent` para reduzir verbosidade
+- Foco nos resultados dos testes sem ruído de `console.log`

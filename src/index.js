@@ -31,7 +31,8 @@ const {
  */
 function createFilteredProjectCopy(projectPath, workRoot) {
   const filteredDir = path.join(workRoot, 'filtered-project');
-  fs.mkdirSync(filteredDir, { recursive: true });
+  // Use restrictive permissions (owner-only) to avoid security issues with world-writable directories
+  fs.mkdirSync(filteredDir, { recursive: true, mode: 0o700 });
 
   // Directories and patterns to exclude
   const excludePatterns = [
@@ -83,7 +84,8 @@ function createFilteredProjectCopy(projectPath, workRoot) {
  * Fallback recursive copy that excludes specified patterns
  */
 function copyDirectoryRecursive(src, dst, excludePatterns) {
-  fs.mkdirSync(dst, { recursive: true });
+  // Use restrictive permissions (owner-only) to avoid security issues with world-writable directories
+  fs.mkdirSync(dst, { recursive: true, mode: 0o700 });
 
   const entries = fs.readdirSync(src, { withFileTypes: true });
 
@@ -169,9 +171,10 @@ async function analyze(projectPath, options = {}) {
   const libsLineIndexDir = path.join(indexRoot, '.horsebox', 'index-libs-lines');
 
   // Create index directories
-  fs.mkdirSync(projectIndexDir, { recursive: true });
-  fs.mkdirSync(libsIndexDir, { recursive: true });
-  fs.mkdirSync(libsLineIndexDir, { recursive: true });
+  // Use restrictive permissions (owner-only) to avoid security issues with world-writable directories
+  fs.mkdirSync(projectIndexDir, { recursive: true, mode: 0o700 });
+  fs.mkdirSync(libsIndexDir, { recursive: true, mode: 0o700 });
+  fs.mkdirSync(libsLineIndexDir, { recursive: true, mode: 0o700 });
 
   // Use separate temp directory for filtered project copy to avoid recursive copy issues
   const workRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ctest-work-'));

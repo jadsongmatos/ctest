@@ -37,7 +37,8 @@ function getCacheDir() {
   const homeDir = os.homedir();
   const cacheDir = path.join(homeDir, '.ctest', 'repos');
   if (!fs.existsSync(cacheDir)) {
-    fs.mkdirSync(cacheDir, { recursive: true });
+    // Use restrictive permissions (owner-only) to avoid security issues with world-writable directories
+    fs.mkdirSync(cacheDir, { recursive: true, mode: 0o700 });
   }
   return cacheDir;
 }

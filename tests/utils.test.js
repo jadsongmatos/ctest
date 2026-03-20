@@ -195,7 +195,8 @@ describe('Utils Module', () => {
 
       getCacheDir();
 
-      expect(fs.mkdirSync).toHaveBeenCalledWith('/home/user/.ctest/repos', { recursive: true });
+      // Should use restrictive permissions (mode 0o700) for security
+      expect(fs.mkdirSync).toHaveBeenCalledWith('/home/user/.ctest/repos', { recursive: true, mode: 0o700 });
     });
 
     it('should use correct default cache path', () => {

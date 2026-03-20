@@ -8,7 +8,7 @@
   },
   "scripts": {
     "ctest": "node src/index.js",
-    "test": "jest --coverage"
+    "test": "jest --coverage --silent"
   },
   "keywords": [
     "sbom",

@@ -155,6 +155,89 @@ node_modules
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
+
+    describe('with real code analysis', () => {
+      beforeEach(() => {
+        const realParser = jest.requireActual('@babel/parser');
+        parser.parse.mockImplementation((...args) => realParser.parse(...args));
+        fs.existsSync.mockReturnValue(true);
+      });
+
+      it('should detect CommonJS require with destructuring', () => {
+        fs.readFileSync.mockReturnValue(`const { readFileSync, writeFileSync } = require('fs');`);
+
+        const result = analyzeSourceFile(testFile);
+
+        expect(result.fs).toBeDefined();
+        expect(result.fs.functions).toContain('readFileSync');
+        expect(result.fs.functions).toContain('writeFileSync');
+      });
+
+      it('should detect member expressions from default require', () => {
+        fs.readFileSync.mockReturnValue(`const path = require('path');\npath.join('/a', 'b');`);
+
+        const result = analyzeSourceFile(testFile);
+
+        expect(result.path).toBeDefined();
+        expect(result.path.members.path).toContain('join');
+      });
+
+      it('should detect ES6 named imports', () => {
+        fs.readFileSync.mockReturnValue(`import { join, resolve } from 'path';`);
+
+        const result = analyzeSourceFile(testFile);
+
+        expect(result.path).toBeDefined();
+        expect(result.path.functions).toContain('join');
+        expect(result.path.functions).toContain('resolve');
+      });
+
+      it('should detect member expression chains', () => {
+        fs.readFileSync.mockReturnValue(`const db = require('prisma');\ndb.user.findMany();`);
+
+        const result = analyzeSourceFile(testFile);
+
+        expect(result.prisma).toBeDefined();
+        expect(result.prisma.chains).toContain('user.findMany');
+      });
+
+      it('should track class instances from destructured import', () => {
+        const code = `
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+prisma.user.findUnique();
+        `;
+        fs.readFileSync.mockReturnValue(code);
+
+        const result = analyzeSourceFile(testFile);
+
+        expect(result['@prisma/client']).toBeDefined();
+        expect(result['@prisma/client'].chains).toContain('user.findUnique');
+      });
+
+      it('should detect multiple libraries in one file', () => {
+        const code = `
+const { readFileSync } = require('fs');
+const path = require('path');
+readFileSync('/test');
+path.join('/a', 'b');
+        `;
+        fs.readFileSync.mockReturnValue(code);
+
+        const result = analyzeSourceFile(testFile);
+
+        expect(result.fs).toBeDefined();
+        expect(result.path).toBeDefined();
+      });
+
+      it('should return empty object for file with no imports', () => {
+        fs.readFileSync.mockReturnValue(`function hello() { return 42; }`);
+
+        const result = analyzeSourceFile(testFile);
+
+        expect(result).toEqual({});
+      });
+    });
   });
 
   describe('scanSourceFiles', () => {

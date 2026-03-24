@@ -296,5 +296,16 @@ describe('Horsebox Module', () => {
         expect(mockExecFileSync).toHaveBeenCalledTimes(2);
       });
     });
+
+    it('should throw when hb returns invalid JSON', () => {
+      const mockExecFileSync = jest.spyOn(require('child_process'), 'execFileSync');
+      mockExecFileSync.mockReturnValue('not valid json {{{');
+
+      const { searchIndex } = require('../src/lib/horsebox');
+
+      expect(() => {
+        searchIndex('/test/index', 'query', 10);
+      }).toThrow();
+    });
   });
 });

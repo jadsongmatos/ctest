@@ -121,6 +121,8 @@ async function analyze(projectPath, options = {}) {
     respectGitIgnore = true,
     downloadDir = null,
     directOnly = false,
+    includePatterns = null,
+    excludePatterns = null,
   } = options;
 
   const resolvedProjectPath = path.resolve(projectPath || process.cwd());
@@ -238,7 +240,7 @@ async function analyze(projectPath, options = {}) {
 
   const sourceFiles = sourceFile
     ? [path.resolve(resolvedProjectPath, sourceFile)]
-    : scanSourceFiles(resolvedProjectPath, { respectGitIgnore, excludeDirs });
+    : scanSourceFiles(resolvedProjectPath, { respectGitIgnore, excludeDirs, includePatterns, excludePatterns });
 
   const generated = [];
 
@@ -292,6 +294,8 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   const projectPath = args[0] || process.cwd();
   const fileArg = args.find(arg => arg.startsWith('--file='));
+  const includeArg = args.find(arg => arg.startsWith('--include='));
+  const excludeArg = args.find(arg => arg.startsWith('--exclude='));
   const downloadFlag = args.includes('--download-dependencies');
   const directOnlyFlag = args.includes('--direct-only');
   const maxDownloadsArg = args.find(arg => arg.startsWith('--max-downloads='));
@@ -306,6 +310,10 @@ if (require.main === module) {
   }
 
   const downloadDir = downloadDirArg ? downloadDirArg.split('=')[1] : null;
+  
+  // Parse include/exclude patterns (can be comma-separated)
+  const includePatterns = includeArg ? includeArg.split('=')[1].split(',') : null;
+  const excludePatterns = excludeArg ? excludeArg.split('=')[1].split(',') : null;
 
   analyze(projectPath, {
     sourceFile: fileArg ? fileArg.split('=')[1] : undefined,
@@ -314,6 +322,8 @@ if (require.main === module) {
     respectGitIgnore,
     downloadDir,
     directOnly: directOnlyFlag,
+    includePatterns,
+    excludePatterns,
   })
     .then(result => {
       console.log(`\nDone. Generated ${result.generated.length} markdown files.`);

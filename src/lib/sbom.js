@@ -2,6 +2,29 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const yaml = require('js-yaml');
+
+/**
+ * Detecta o gerenciador de pacotes usado no projeto
+ * @param {string} projectPath - Caminho do projeto
+ * @returns {{type: 'npm'|'pnpm'|'yarn', lockPath: string}|null}
+ */
+function detectPackageManager (projectPath) {
+  const lockFiles = [
+    { type: 'pnpm', name: 'pnpm-lock.yaml' },
+    { type: 'yarn', name: 'yarn.lock' },
+    { type: 'npm', name: 'package-lock.json' }
+  ];
+
+  for (const { type, name } of lockFiles) {
+    const lockPath = path.join(projectPath, name);
+    if (fs.existsSync(lockPath)) {
+      return { type, lockPath };
+    }
+  }
+
+  return null;
+}
 
 async function fetchNpmPackageInfo (packageName) {
   return new Promise((resolve) => {
@@ -37,8 +60,16 @@ async function createSBOMFromPackageLock (packageLock, fetchRepoUrls = false, om
     if (rootPkg && rootPkg.dependencies) {
       Object.keys(rootPkg.dependencies).forEach(d => directDependencies.add(d));
     }
+    // Also support pnpm format (importers)
+    if (packageLock.importers && packageLock.importers['.']) {
+      const rootDeps = packageLock.importers['.'].dependencies || {};
+      const rootDevDeps = packageLock.importers['.'].devDependencies || {};
+      Object.keys(rootDeps).forEach(d => directDependencies.add(d));
+      Object.keys(rootDevDeps).forEach(d => directDependencies.add(d));
+    }
   }
 
+  // Support npm package-lock.json format (v2/v3)
   if (packageLock.packages) {
     for (const [pkgPath, pkg] of Object.entries(packageLock.packages)) {
       if (pkgPath === '') { continue; }
@@ -50,6 +81,37 @@ async function createSBOMFromPackageLock (packageLock, fetchRepoUrls = false, om
           continue;
         }
         packageNames.push({ name, version: pkg.version, resolved: pkg.resolved });
+      }
+    }
+  }
+
+  // Support pnpm pnpm-lock.yaml format (v6+)
+  if (packageLock.importers) {
+    for (const [importerPath, importer] of Object.entries(packageLock.importers)) {
+      const deps = {
+        ...(importer.dependencies || {}),
+        ...(importer.devDependencies || {}),
+        ...(importer.optionalDependencies || {})
+      };
+
+      for (const [name, depInfo] of Object.entries(deps)) {
+        if (typeof depInfo === 'string') {
+          // Simple version string
+          packageNames.push({ name, version: depInfo, resolved: null });
+        } else if (depInfo && typeof depInfo === 'object' && depInfo.version) {
+          // Object with version property
+          packageNames.push({ name, version: depInfo.version, resolved: null });
+        }
+      }
+    }
+  }
+
+  // Support yarn.lock format (parsed as JS object by yarn utils)
+  // Yarn lock files typically have a simpler structure
+  if (packageLock.type === 'yarn' && packageLock.data) {
+    for (const [name, info] of Object.entries(packageLock.data)) {
+      if (info.version) {
+        packageNames.push({ name, version: info.version, resolved: info.resolved });
       }
     }
   }
@@ -100,13 +162,50 @@ async function createSBOMFromPackageLock (packageLock, fetchRepoUrls = false, om
   };
 }
 
+function findPackageLockPath (startDir) {
+  let current = path.resolve(startDir);
+  const root = path.parse(current).root;
+  const lockFileNames = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
+
+  while (current !== root) {
+    for (const lockName of lockFileNames) {
+      const lockPath = path.join(current, lockName);
+      if (fs.existsSync(lockPath)) {
+        return lockPath;
+      }
+    }
+    current = path.dirname(current);
+  }
+  return null;
+}
+
 async function generateSBOM (projectPath, outputFile = 'sbom.cdx.json', fetchRepoUrls = false, omitTransitive = false) {
   const outputFilePath = path.resolve(projectPath, outputFile);
+  const pm = detectPackageManager(projectPath);
+
+  if (!pm) {
+    throw new Error('Nenhum gerenciador de pacotes detectado. Certifique-se de que o projeto possui pnpm-lock.yaml, yarn.lock ou package-lock.json');
+  }
 
   try {
+    // Seleciona a ferramenta CycloneDX baseada no gerenciador de pacotes
+    let cycloneCmd;
+    switch (pm.type) {
+      case 'pnpm':
+        cycloneCmd = 'npx @cyclonedx/cyclonedx-pnpm';
+        break;
+      case 'yarn':
+        cycloneCmd = 'npx @cyclonedx/cyclonedx-yarn';
+        break;
+      case 'npm':
+      default:
+        cycloneCmd = 'npx @cyclonedx/cyclonedx-npm';
+        break;
+    }
+
     const omitArgs = omitTransitive ? '--omit dev --omit optional --omit peer' : '';
     execSync(
-      `npx @cyclonedx/cyclonedx-npm ${omitArgs} --output-format JSON --output-file "${outputFilePath}"`,
+      `${cycloneCmd} ${omitArgs} --output-format JSON --output-file "${outputFilePath}"`,
       {
         cwd: projectPath,
         stdio: 'pipe',
@@ -135,9 +234,9 @@ async function generateSBOM (projectPath, outputFile = 'sbom.cdx.json', fetchRep
         // try to populate from dependencies graph or directDeps
         if (sbom.components.length === 0 && directDeps.size > 0) {
           // Fallback to manual creation for those direct deps since tool omitted them
-          const packageLockPath = path.join(projectPath, 'package-lock.json');
-          if (fs.existsSync(packageLockPath)) {
-            const packageLock = JSON.parse(fs.readFileSync(packageLockPath, 'utf8'));
+          const lockPath = findPackageLockPath(projectPath);
+          if (lockPath) {
+            const packageLock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
             const fallbackSBOM = await createSBOMFromPackageLock(packageLock, false, true);
             sbom.components = fallbackSBOM.components;
           } else {
@@ -185,14 +284,38 @@ async function generateSBOM (projectPath, outputFile = 'sbom.cdx.json', fetchRep
 
     fs.writeFileSync(outputFilePath, JSON.stringify(sbom, null, 2));
   } catch (error) {
-    const packageLockPath = path.join(projectPath, 'package-lock.json');
+    // Walk up directory tree to find lock file (supports monorepos/workspaces)
+    const packageLockPath = findPackageLockPath(projectPath);
 
-    if (!fs.existsSync(packageLockPath)) {
-      throw new Error(`SBOM generation failed and no package-lock.json found at ${projectPath}: ${error.message}`);
+    if (!packageLockPath) {
+      throw new Error(`SBOM generation failed and no lock file (package-lock.json, pnpm-lock.yaml, yarn.lock) found at ${projectPath} or parent directories: ${error.message}`);
     }
 
-    const packageLock = JSON.parse(fs.readFileSync(packageLockPath, 'utf8'));
+    console.warn(`Using lock file from ${path.dirname(packageLockPath)} (monorepo fallback)`);
+    
+    // Parse lock file based on its type
+    let packageLock;
+    if (packageLockPath.endsWith('.yaml') || packageLockPath.endsWith('.yml')) {
+      packageLock = yaml.load(fs.readFileSync(packageLockPath, 'utf8'));
+    } else {
+      packageLock = JSON.parse(fs.readFileSync(packageLockPath, 'utf8'));
+    }
+
+    // For monorepo sub-packages, filter components to only those in this package's dependencies
+    const packageJsonPath = path.join(projectPath, 'package.json');
+    let directDeps = null;
+    if (fs.existsSync(packageJsonPath)) {
+      const pkgJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      directDeps = new Set(Object.keys(pkgJson.dependencies || {}));
+    }
+
     const minimalSBOM = await createSBOMFromPackageLock(packageLock, fetchRepoUrls, omitTransitive);
+
+    // If we found the lockfile in a parent dir and have local package.json, filter to local deps
+    if (directDeps && packageLockPath !== path.join(projectPath, 'package-lock.json')) {
+      minimalSBOM.components = minimalSBOM.components.filter(c => directDeps.has(c.name));
+    }
+
     fs.writeFileSync(outputFilePath, JSON.stringify(minimalSBOM, null, 2));
   }
 
@@ -237,5 +360,7 @@ module.exports = {
   generateSBOM,
   readSBOM,
   extractComponents,
-  createSBOMFromPackageLock
+  createSBOMFromPackageLock,
+  findPackageLockPath,
+  detectPackageManager
 };

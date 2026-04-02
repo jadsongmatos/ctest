@@ -37,27 +37,36 @@ function parseGitIgnore (dir) {
  * Convert a gitignore pattern to a regex
  */
 function patternToRegex (pattern) {
+  // Handle **/ prefix first (before escaping)
+  const startsWithAnyDir = pattern.startsWith('**/');
+  const basePattern = startsWithAnyDir ? pattern.slice(3) : pattern;
+
   // Escape special regex characters except * and ?
-  let regex = pattern
+  let regex = basePattern
     .replace(/[.+^${}()|[\]\\]/g, '\\$&')
     .replace(/\*/g, '.*')
     .replace(/\?/g, '.');
 
   // Handle leading slash (anchored to root)
-  const anchored = pattern.startsWith('/');
+  const anchored = basePattern.startsWith('/');
   if (anchored) {
     regex = regex.slice(1);
     return new RegExp(`^${regex}`);
   }
 
   // Handle trailing slash (directory only)
-  const dirOnly = pattern.endsWith('/');
+  const dirOnly = basePattern.endsWith('/');
   if (dirOnly) {
     regex = `${regex.slice(0, -1)}/.*`;
   }
 
+  // **/ prefix means match at any directory depth
+  if (startsWithAnyDir) {
+    return new RegExp(`(^|/)${regex}($|/)`);
+  }
+
   // Pattern with slash in middle is relative to root
-  if (pattern.includes('/') && !pattern.startsWith('**/')) {
+  if (basePattern.includes('/')) {
     return new RegExp(`(^|/)${regex}`);
   }
 
@@ -293,19 +302,23 @@ function analyzeSourceFile (filePath) {
 }
 
 function scanSourceFiles (dir, options = {}) {
-  const { respectGitIgnore = true, excludeDirs = [] } = options;
+  const { respectGitIgnore = true, excludeDirs = [], includePatterns = null, excludePatterns = null } = options;
   const sourceFiles = [];
   const gitIgnorePatterns = respectGitIgnore ? getGitIgnorePatterns(dir) : [];
 
   // Directories that are always ignored regardless of .gitignore
   const alwaysIgnoredDirs = ['node_modules', '.git', 'dist', 'build', 'coverage', 'test', 'tests', '__tests__', ...excludeDirs];
 
+  // Convert include/exclude patterns to regexes
+  const includeRegexes = includePatterns ? includePatterns.map(p => patternToRegex(p.trim())) : null;
+  const excludeRegexes = excludePatterns ? excludePatterns.map(p => patternToRegex(p.trim())) : null;
+
   function scan (currentDir) {
     const entries = fs.readdirSync(currentDir, { withFileTypes: true });
 
     for (const entry of entries) {
       const fullPath = path.join(currentDir, entry.name);
-      const relativePath = path.relative(dir, fullPath);
+      const relativePath = path.relative(dir, fullPath).replace(/\\/g, '/');
 
       // Always ignore specific directories
       if (entry.isDirectory() && alwaysIgnoredDirs.includes(entry.name)) {
@@ -322,6 +335,22 @@ function scanSourceFiles (dir, options = {}) {
       if (entry.isDirectory()) {
         scan(fullPath);
       } else if (entry.isFile() && /\.(js|jsx|mjs|cjs|ts|tsx)$/.test(entry.name)) {
+        // Apply exclude patterns first (exclude takes precedence)
+        if (excludeRegexes) {
+          const isExcluded = excludeRegexes.some(regex => regex.test(relativePath));
+          if (isExcluded) {
+            continue;
+          }
+        }
+
+        // Apply include patterns (if specified, file must match at least one pattern)
+        if (includeRegexes) {
+          const isIncluded = includeRegexes.some(regex => regex.test(relativePath));
+          if (!isIncluded) {
+            continue;
+          }
+        }
+
         sourceFiles.push(fullPath);
       }
     }

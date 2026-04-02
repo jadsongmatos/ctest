@@ -337,5 +337,110 @@ path.join('/a', 'b');
       expect(files).toHaveLength(6);
       expect(files).not.toContain('/test/project/file.txt');
     });
+
+    it('should support includePatterns to filter files', () => {
+      const rootEntries = [
+        { name: 'src', isDirectory: () => true, isFile: () => false },
+        { name: 'index.js', isDirectory: () => false, isFile: () => true },
+        { name: 'app.js', isDirectory: () => false, isFile: () => true }
+      ];
+      const srcEntries = [
+        { name: 'utils.ts', isDirectory: () => false, isFile: () => true },
+        { name: 'helper.js', isDirectory: () => false, isFile: () => true }
+      ];
+
+      fs.readdirSync
+        .mockReturnValueOnce(rootEntries)
+        .mockReturnValueOnce(srcEntries);
+      fs.existsSync.mockReturnValue(false);
+
+      // Only include files in src/ directory
+      const files = scanSourceFiles('/test/project', { includePatterns: ['src/**'] });
+
+      expect(files).toContain('/test/project/src/utils.ts');
+      expect(files).toContain('/test/project/src/helper.js');
+      expect(files).not.toContain('/test/project/index.js');
+      expect(files).not.toContain('/test/project/app.js');
+    });
+
+    it('should support excludePatterns to filter files', () => {
+      const rootEntries = [
+        { name: 'src', isDirectory: () => true, isFile: () => false },
+        { name: 'index.js', isDirectory: () => false, isFile: () => true },
+        { name: 'test.spec.js', isDirectory: () => false, isFile: () => true }
+      ];
+      const srcEntries = [
+        { name: 'utils.ts', isDirectory: () => false, isFile: () => true },
+        { name: 'helper.test.js', isDirectory: () => false, isFile: () => true }
+      ];
+
+      fs.readdirSync
+        .mockReturnValueOnce(rootEntries)
+        .mockReturnValueOnce(srcEntries);
+      fs.existsSync.mockReturnValue(false);
+
+      // Exclude test files
+      const files = scanSourceFiles('/test/project', { excludePatterns: ['**/*.test.js', '**/*.spec.js'] });
+
+      expect(files).toContain('/test/project/index.js');
+      expect(files).toContain('/test/project/src/utils.ts');
+      expect(files).not.toContain('/test/project/test.spec.js');
+      expect(files).not.toContain('/test/project/src/helper.test.js');
+    });
+
+    it('should apply excludePatterns before includePatterns', () => {
+      const rootEntries = [
+        { name: 'src', isDirectory: () => true, isFile: () => false },
+        { name: 'index.js', isDirectory: () => false, isFile: () => true },
+        { name: 'vendor.js', isDirectory: () => false, isFile: () => true }
+      ];
+      const srcEntries = [
+        { name: 'utils.ts', isDirectory: () => false, isFile: () => true },
+        { name: 'vendor.ts', isDirectory: () => false, isFile: () => true }
+      ];
+
+      fs.readdirSync
+        .mockReturnValueOnce(rootEntries)
+        .mockReturnValueOnce(srcEntries);
+      fs.existsSync.mockReturnValue(false);
+
+      // Include src/** but exclude vendor files
+      const files = scanSourceFiles('/test/project', {
+        includePatterns: ['src/**', '*.js'],
+        excludePatterns: ['**/vendor.*']
+      });
+
+      expect(files).toContain('/test/project/index.js');
+      expect(files).toContain('/test/project/src/utils.ts');
+      expect(files).not.toContain('/test/project/vendor.js');
+      expect(files).not.toContain('/test/project/src/vendor.ts');
+    });
+
+    it('should handle comma-separated include patterns', () => {
+      const rootEntries = [
+        { name: 'src', isDirectory: () => true, isFile: () => false },
+        { name: 'lib', isDirectory: () => true, isFile: () => false },
+        { name: 'index.js', isDirectory: () => false, isFile: () => true }
+      ];
+      const srcEntries = [
+        { name: 'app.ts', isDirectory: () => false, isFile: () => true }
+      ];
+      const libEntries = [
+        { name: 'utils.js', isDirectory: () => false, isFile: () => true }
+      ];
+
+      fs.readdirSync
+        .mockReturnValueOnce(rootEntries)
+        .mockReturnValueOnce(srcEntries)
+        .mockReturnValueOnce(libEntries);
+      fs.existsSync.mockReturnValue(false);
+
+      // Include both src/** and lib/**
+      const files = scanSourceFiles('/test/project', { includePatterns: ['src/**', 'lib/**'] });
+
+      expect(files).toContain('/test/project/src/app.ts');
+      expect(files).toContain('/test/project/lib/utils.js');
+      expect(files).not.toContain('/test/project/index.js');
+    });
   });
 });

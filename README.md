@@ -1,6 +1,6 @@
 # Ctest
 
-Ctest é uma ferramenta de linha de comando que analisa projetos npm e gera arquivos markdown com testes das dependências externas para cada arquivo de código-fonte, usando **Horsebox** como mecanismo de busca de código.
+Ctest é uma ferramenta de linha de comando que analisa projetos npm, pnpm e yarn e gera arquivos markdown com testes das dependências externas para cada arquivo de código-fonte, usando **Horsebox** como mecanismo de busca de código.
 
 [![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=jadsongmatos_ctest)](https://sonarcloud.io/summary/new_code?id=jadsongmatos_ctest)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=jadsongmatos_ctest&metric=coverage)](https://sonarcloud.io/summary/new_code?id=jadsongmatos_ctest)
@@ -40,6 +40,39 @@ uv tool install git+https://github.com/michelcaradec/horsebox
 npm install
 ```
 
+## Instalação como Skill do GitHub Copilot
+
+Você pode instalar o Ctest como um skill do GitHub Copilot usando o comando `npx skills add`:
+
+```bash
+npx skills add jadsonmatos/ctest
+```
+
+Isso adicionará o skill `ctest-review` ao seu projeto, permitindo que o GitHub Copilot gere testes automatizados baseados na análise do Ctest.
+
+### Usando o Skill
+
+Após instalado, você pode usar o skill para gerar testes:
+
+```bash
+# Gerar testes para um arquivo específico
+/ctest-review src/lib/utils.js
+
+# Ou simplesmente peça ao Copilot para usar o skill em qualquer arquivo que você quer testar
+```
+
+O skill lerá o arquivo `.md` gerado pelo Ctest e criará testes Jest correspondentes para as bibliotecas externas detectadas.
+
+## Suporte a pnpm e Yarn
+
+O Ctest detecta automaticamente o gerenciador de pacotes do projeto:
+
+- **pnpm**: Projetos com `pnpm-lock.yaml` usam `@cyclonedx/cyclonedx-pnpm`
+- **yarn**: Projetos com `yarn.lock` usam `@cyclonedx/cyclonedx-yarn`
+- **npm**: Projetos com `package-lock.json` usam `@cyclonedx/cyclonedx-npm`
+
+Nenhuma configuração adicional é necessária - basta executar o Ctest no diretório do projeto.
+
 ## Início Rápido
 
 Analise um projeto npm e gere arquivos markdown com testes externos:
@@ -58,11 +91,13 @@ node src/index.js . --file=src/lib/utils.js --download-dependencies
 
 | Opção | Descrição |
 |-------|-----------|
-| `<project-path>` | Caminho para o projeto npm (padrão: `.`) |
+| `<project-path>` | Caminho para o projeto (npm/pnpm/yarn) (padrão: `.`) |
 | `--download-dependencies` | Habilita o download/uso do cache de repositórios das dependências |
 | `--direct-only` | Analisa apenas dependências diretas listadas no `package.json` |
 | `--download-dir=<path>` | Muda o diretório de cache de repositórios (padrão: `~/.ctest/repos`) |
 | `--file=<arquivo>` | Analisa apenas um arquivo específico do projeto |
+| `--include=<pattern>` | Filtra arquivos para análise usando padrões glob (ex: `src/**`, `**/*.ts`) |
+| `--exclude=<pattern>` | Exclui arquivos da análise usando padrões glob (ex: `**/*.test.js`, `**/vendor/**`) |
 | `--max-downloads=<n>` | Limita o número de novos downloads de dependências |
 | `--respect-gitignore=<true\|false>` | Respeita o `.gitignore` ao varrer o projeto (padrão: `true`) |
 
@@ -74,6 +109,21 @@ node src/index.js . --download-dependencies --direct-only --download-dir=deps
 
 # Analisar sem baixar nada (usa apenas o que já estiver no cache ou projeto)
 node src/index.js .
+
+# Analisar apenas arquivos de uma subpasta específica
+node src/index.js . --download-dependencies --include="src/lib/**"
+
+# Analisar apenas arquivos TypeScript
+node src/index.js . --download-dependencies --include="**/*.ts"
+
+# Excluir arquivos de teste da análise
+node src/index.js . --download-dependencies --exclude="**/*.test.js,**/*.spec.js"
+
+# Combinar include e exclude: analisar src/ mas excluir vendor
+node src/index.js . --download-dependencies --include="src/**" --exclude="**/vendor/**"
+
+# Múltiplos padrões include (separados por vírgula)
+node src/index.js . --download-dependencies --include="src/**,lib/**"
 ```
 
 ## Como Funciona
@@ -111,4 +161,4 @@ npm test
 
 ## License
 
-ISC
+[GNU General Public License v3.0](./LICENSE)

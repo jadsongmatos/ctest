@@ -64,37 +64,25 @@ Look for `tests/<module-name>.test.js` (e.g. `src/lib/utils.js` → `tests/utils
 
 Follow the project's Jest conventions with XP discipline:
 
-```js
-// CommonJS imports
-const someModule = require('../src/lib/example');
+```pseudocode
+import module_under_test
 
-// Mock external dependencies (fs, os, child_process, http, etc.) - Security: Mock all I/O to prevent hostile input
-jest.mock('fs');
-jest.mock('os');
+mock all I/O dependencies (fs, os, child_process, http, ...)
 
-describe('Module Name', () => {
-  beforeEach(() => {
-    jest.clearAllMocks(); // State management for test isolation
-  });
+describe "Module Name":
+  before each test: clear all mocks
+  after each test:  restore all mocks
 
-  afterEach(() => {
-    jest.restoreAllMocks(); // Clean up after each test
-  });
+  describe "functionName":
+    it "should <expected behavior> when <condition>":
+      arrange: set up inputs and mock return values
+      act:     call the exported function
+      assert:  verify output / side effects
 
-  describe('functionName', () => {
-    it('should <expected behavior> when <condition>', () => {
-      // Arrange - Atomic, production-ready increment
-      // Act 
-      // Assert - Empirical safety net
-    });
-
-    it('should throw / return null / handle error when <bad input>', () => {
-      // Defensive code generation: bounds checking, sanitization
-      // Account for: timeouts, retries, SSRF protections where relevant
-      // Tool arguments are untrusted: validate type, size, shape defensively
-    });
-  });
-});
+    it "should throw / return null / handle error when <bad input>":
+      arrange: set up invalid or boundary inputs
+      act:     call the exported function
+      assert:  verify error thrown or safe fallback returned
 ```
 
 **Rules (Judgments of Conformity):**
@@ -116,22 +104,45 @@ Write or update `tests/<module-name>.test.js` with the generated tests using exa
 
 ## 8. Cleanup
 
+**Invariants de cleanup — nunca violar:**
+
+1. **Proibido marcar em lote.** Cada item do checklist só pode ser marcado
+   após o teste daquele item específico ter sido escrito e salvo.
+   Nunca itere o checklist inteiro marcando todos os itens de uma vez.
+
+2. **Proibido deletar o `.md` sem teste validado.** O arquivo de referência
+   só pode ser removido depois que o arquivo de teste correspondente
+   existir em disco e cobrir as funções exportadas do módulo.
+
+3. **Ordem obrigatória — uma iteração por item:**
+   ```pseudocode
+   for each unchecked item in checklist:
+     read source_file and reference_md
+     write or update test_file
+     assert test_file exists and covers exported functions
+     mark checklist item as done
+     delete reference_md
+   ```
+   Nenhuma etapa pode ser pulada nem reordenada.
+   Se o teste falhar ou não puder ser gerado, o item permanece
+   `- [ ]` e o `.md` é preservado; registre o bloqueio em comentário no checklist.
+
 After the test file is written, execute this dialectical verification internally (Pre-Commit Dialectical Verification):
 
 ### 8.1 Mark the checklist item as done
 
 Edit `CTEST_CHECKLIST.md` and change the item from unchecked to checked:
 
-```
-- [ ] src/lib/example.js.md   →   - [x] src/lib/example.js.md
+```pseudocode
+checklist[current_item].status = checked
 ```
 
 ### 8.2 Delete the ctest-generated `.md` file
 
 Remove the `.md` file that was used as reference (e.g. `src/lib/example.js.md`):
 
-```bash
-rm src/lib/example.js.md
+```pseudocode
+delete reference_md
 ```
 
 Both steps are required. Do not skip either one.
@@ -144,3 +155,5 @@ Both steps are required. Do not skip either one.
 - [ ] Did I remove all temporary debugging artifacts (e.g. `console.log`, `print()`)?
 - [ ] Did I strictly avoid unsolicited refactoring of unrelated lines?
 - [ ] Is this solution apodictic (provably correct) rather than merely probable?
+- [ ] Marquei SOMENTE o item cujo teste acabei de escrever (sem marcação em lote)?
+- [ ] Deletei o `.md` SOMENTE após o arquivo de teste existir em disco?
